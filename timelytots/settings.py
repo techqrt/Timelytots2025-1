@@ -9,7 +9,7 @@ SECRET_KEY = 'django-insecure-^p1@sdj8h)4b!r1_0p6)9)drs!aq&wp@1+tafux9)kn$ll(y1$
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['tt.bonanso.com', 'www.tt.bonanso.com']
+ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -87,9 +87,8 @@ USE_TZ = True
 STATIC_URL = 'static/'
 MEDIA_URL = '/media/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
-STATIC_ROOT = '/home/getpetco/public_html/timelytots/static'
-MEDIA_ROOT = '/home/getpetco/public_html/timelytots/media'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

@@ -1,10 +1,9 @@
 import requests
 from django.conf import settings
-import requests
-import os
 from django.utils import timezone
 from patientApp.models import PatientVaccine  # Adjust the import based on your project structure
 from celery import shared_task
+import os
 
 WHATSAPP_API_URL = "https://graph.facebook.com/v20.0/<your_phone_number_id>/messages"
 WHATSAPP_ACCESS_TOKEN = os.getenv("WHATSAPP_ACCESS_TOKEN")  # set in .env
