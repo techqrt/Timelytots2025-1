@@ -1,4 +1,4 @@
-from celery_app import Celery
+from celery import Celery
 import os
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'timelytots.settings')
