@@ -1,0 +1,7 @@
+# This is a sample requirements file for deploying a Django application on AWS.
+
+Django>=3.2,<4.0
+boto3
+django-storages
+celery
+redis
