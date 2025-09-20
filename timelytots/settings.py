@@ -133,3 +133,4 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(hour=8, minute=0),  # Adjust the time as needed
     },
 }
+
