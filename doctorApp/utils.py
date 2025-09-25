@@ -113,6 +113,39 @@ def send_vaccination_reminders():
             response = send_whatsapp_reminder(mobile_number, child_name, doctor_name, due_date)
             print(f"Reminder sent to {mobile_number}: {response}")
 
+def send_registered_whatsapp(mobile_number, child_name, doctor_name):
+    url = "https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/"
+    headers = {
+        "Content-Type": "application/json",
+        "authkey": settings.MSG91_AUTH_KEY,
+    }
+
+    payload = {
+        "integrated_number": "918750138303",
+        "content_type": "template",
+        "payload": {
+            "messaging_product": "whatsapp",
+            "type": "template",
+            "template": {
+                "name": "timelytots_intro",
+                "language": {"code": "en", "policy": "deterministic"},
+                "namespace": "4e5add5b_52ed_4239_be4b_8b21e8a8f430",
+                "to_and_components": [
+                    {
+                        "to": [f"91{mobile_number}"],
+                        "components": {
+                            "body_1": {"type": "text", "value": child_name},
+                            "body_2": {"type": "text", "value": doctor_name},
+                        },
+                    }
+                ],
+            },
+        },
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
+    return response.json()
+
 
 # Call the task periodically using Celery Beat
 # In your settings.py, add the following:

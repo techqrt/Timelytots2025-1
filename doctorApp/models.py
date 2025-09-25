@@ -1,6 +1,8 @@
 from django.db import models
 from django.conf import settings
 
+from authenticationApp.models import User
+
 
 # Create your models here.
 
@@ -28,13 +30,15 @@ class VaccineSchedule(models.Model):
         TEN_YEARS = "10 Years", "10 Years"
         SIXTEEN_EIGHTEEN_YEARS = "16–18 Years", "16–18 Years"
 
+    user = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
+
     ACCOUNT_TYPE_CHOICES = [
         ("doctor", "Individual Doctor"),
         ("clinic", "Clinic / Hospital"),
     ]
 
-    doctor = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+    clinic_doctor = models.ForeignKey(
+        "authenticationApp.ClinicDoctor",
         on_delete=models.CASCADE,
         null=True, blank=True,
         related_name="vaccine_schedules"
@@ -44,19 +48,21 @@ class VaccineSchedule(models.Model):
         choices=ACCOUNT_TYPE_CHOICES,
         null=True, blank=True
     )
-
     patient = models.ForeignKey(
         "patientApp.Patient",
         on_delete=models.CASCADE,
-        null=True,
-        blank=True,
+        null=True, blank=True,
         related_name="custom_vaccine_schedules"
     )
-
     age = models.CharField(max_length=20, choices=AgeChoices.choices)
     vaccine = models.CharField(max_length=150)
-
+    
     def __str__(self):
-        if self.doctor:
-            return f"{self.doctor.full_name} ({self.account_type}) → {self.age} → {self.vaccine}"
-        return f"GLOBAL → {self.age} → {self.vaccine}"
+        return f"{self.age} → {self.vaccine}"
+
+
+
+
+
+
+

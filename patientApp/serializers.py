@@ -14,8 +14,9 @@ class PatientVaccineSerializer(serializers.ModelSerializer):
     vaccine_name = serializers.SerializerMethodField()
     vaccine_age = serializers.CharField(source="vaccine_schedule.age", read_only=True)
     created_at = serializers.DateTimeField(format="%d-%b-%Y at %I:%M %p", read_only=True)
-
     custom_age = serializers.CharField(write_only=True, required=False)
+    
+    added_by = serializers.SerializerMethodField()
 
     class Meta:
         model = PatientVaccine
@@ -33,9 +34,15 @@ class PatientVaccineSerializer(serializers.ModelSerializer):
             "patient",
             "vaccine_schedule",
             "patient_name",
-            "custom_vaccine",
             "custom_age",
+            "due_date",
+            "added_by"
         ]
+        
+    def get_added_by(self, obj):
+        if obj.vaccine_schedule and obj.vaccine_schedule.user.is_staff:
+            return "Admin"
+        return getattr(obj.vaccine_schedule.user, "full_name", None) or obj.vaccine_schedule.user.email or "Unknown"
 
     def get_vaccine_name(self, obj):
         if obj.vaccine_schedule:
@@ -67,24 +74,40 @@ class PatientVaccineSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
+
+
+
 class PatientSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(queryset=User.objects.filter(account_type="doctor"), required=False)
     doctor = serializers.PrimaryKeyRelatedField(queryset=ClinicDoctor.objects.all(), required=False)
 
     class Meta:
         model = Patient
-        fields = "__all__"
+        fields = [
+            "id",
+            "doctor",
+            "user",
+            "child_name",
+            "date_of_birth",
+            "mobile_number",
+            "gender",
+            "is_active",
+            "created_at",
+        ]
 
     def validate(self, data):
+        request = self.context.get("request")
+        user = request.user
+
         if data.get("doctor"):
             if not data["doctor"].is_active:
                 raise serializers.ValidationError("This doctor is not active and cannot add patients.")
-        elif data.get("user"):
-            if data["user"].account_type != "doctor":
-                raise serializers.ValidationError("Only individual doctors can add patients directly.")
+        elif user and user.account_type == "doctor":
+            pass
         else:
-            raise serializers.ValidationError("Patient must be linked to either an individual doctor or a clinic "
-                                              "doctor.")
+            raise serializers.ValidationError(
+                "Patient must be linked to either an individual doctor or a clinic doctor."
+            )
         return data
 
     def create(self, validated_data):
@@ -157,4 +180,5 @@ class UpcomingPatientVaccineSerializer(serializers.ModelSerializer):
             "is_completed",
             "patient",
         ]
+
 

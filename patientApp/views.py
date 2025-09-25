@@ -3,15 +3,15 @@ from django.shortcuts import render, get_object_or_404
 from rest_framework import serializers, generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
-
+from django.db import models
 from doctorApp.models import VaccineSchedule
-from doctorApp.utils import send_whatsapp_template, send_whatsapp_reminder
+from doctorApp.utils import send_whatsapp_template, send_registered_whatsapp
 from patientApp.models import Patient, PatientVaccine
 from rest_framework import status
 from patientApp.serializers import PatientSerializer, PatientVaccineSerializer, UpcomingPatientVaccineSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
-
+from datetime import timedelta
 
 # Create your views here.
 
@@ -36,7 +36,7 @@ class PatientViews(APIView):
                 else:
                     doctor_name = "Doctor"
 
-                send_whatsapp_reminder(
+                send_registered_whatsapp(
                     mobile_number=patient.mobile_number,
                     child_name=patient.child_name,
                     doctor_name=doctor_name
@@ -52,32 +52,75 @@ class PatientViews(APIView):
             traceback.print_exc()
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    
     def get(self, request):
         try:
             patients = Patient.objects.filter(user=request.user).order_by('-id')
-
+    
             if not patients.exists():
                 return Response({'message': 'no patients found.'}, status=status.HTTP_204_NO_CONTENT)
-
+    
+            age_to_days = {
+                "Birth": 0, "6 Weeks": 42, "10 Weeks": 70, "14 Weeks": 98,
+                "6 Months": 183, "7 Months": 213, "9 Months": 274,
+                "12 Months": 365, "15 Months": 456, "16–18 Months": 548,
+                "18 Months": 548, "2 Years": 730, "3 Years": 1095,
+                "4 Years": 1460, "4–6 Years": 2190, "5 Years": 1825,
+                "6 Years": 2190, "7 Years": 2555, "8 Years": 2920,
+                "10 Years": 3650, "16–18 Years": 6570
+            }
+    
             response_data = []
+            today = date.today()
+    
             for patient in patients:
-                vaccines = PatientVaccine.objects.filter(patient=patient)
+                age_days = (today - patient.date_of_birth).days
+    
+                schedules = VaccineSchedule.objects.filter(user=request.user) | VaccineSchedule.objects.filter(user__is_staff=True)
 
-                categorized = {
+    
+                for schedule in schedules:
+                    schedule_days = age_to_days.get(schedule.age, None)
+                    if schedule_days is None:
+                        continue
+    
+                    due_date = patient.date_of_birth + timedelta(days=schedule_days)
+    
+                    pv, created = PatientVaccine.objects.get_or_create(
+                        patient=patient,
+                        vaccine_schedule=schedule,
+                        user=request.user,
+                        defaults={"user": request.user, "due_date": due_date}
+                    )
+    
+                    if created:
+                        if age_days >= schedule_days:
+                            pv.status = "Completed"
+                            pv.is_completed = True
+                            pv.completed_on = today
+                            pv.completed_at = "Auto-generated"
+                            pv.due_date = due_date
+                            pv.save()
+                        else:
+                            pv.status = "Pending" if today > due_date else "Upcoming"
+                            pv.is_completed = False
+                            pv.due_date = due_date
+                            pv.save()
+    
+                vaccines = PatientVaccine.objects.filter(patient=patient, user=request.user)
+    
+                response_data.append({
+                    "patient": PatientSerializer(patient).data,
                     "Completed": PatientVaccineSerializer(vaccines.filter(status="Completed"), many=True).data,
                     "Upcoming": PatientVaccineSerializer(vaccines.filter(status="Upcoming"), many=True).data,
                     "Pending": PatientVaccineSerializer(vaccines.filter(status="Pending"), many=True).data,
-                }
-
-                response_data.append({
-                    "patient": PatientSerializer(patient).data,
-                    "vaccines": categorized
                 })
-
+    
             return Response(response_data, status=status.HTTP_200_OK)
-
+    
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
     def put(self, request, id):
         try:
@@ -313,63 +356,23 @@ class UpcomingAppointmentsView(APIView):
     def get(self, request):
         try:
             today = date.today()
+            next_30_days = today + timedelta(days=30)
+
             upcoming_appointments = PatientVaccine.objects.filter(
                 user=request.user,
                 status="Upcoming",
                 is_completed=False,
-                due_date__gte=today
+                due_date__range=[today, next_30_days]  
             ).order_by("due_date")
 
             if upcoming_appointments.exists():
                 serializer = UpcomingPatientVaccineSerializer(upcoming_appointments, many=True)
                 return Response(serializer.data, status=status.HTTP_200_OK)
             else:
-                return Response({"message": "No upcoming appointments found."}, status=status.HTTP_204_NO_CONTENT)
+                return Response(
+                    {"message": "No upcoming appointments found in the next 30 days."},
+                    status=status.HTTP_204_NO_CONTENT
+                )
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-class CreatePatientVaccineView(APIView):
-    permission_classes = [IsAuthenticated]
-    authentication_classes = [JWTAuthentication]
-
-    def get(self, request, patient_id):
-        patient = get_object_or_404(Patient, id=patient_id)
-        vaccines = PatientVaccine.objects.filter(patient=patient)
-        serializer = PatientVaccineSerializer(vaccines, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def post(self, request, patient_id):
-        patient = get_object_or_404(Patient, id=patient_id)
-
-        data = request.data.copy()
-        data["user"] = request.user.id
-        data["patient"] = patient.id
-
-        serializer = PatientVaccineSerializer(data=data)
-        if serializer.is_valid():
-            if not serializer.validated_data.get("vaccine_schedule") and not serializer.validated_data.get("custom_vaccine"):
-                return Response(
-                    {"error": "Provide either vaccine_schedule or custom_vaccine"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def patch(self, request, pk):
-        patient_vaccine = get_object_or_404(PatientVaccine, pk=pk, user=request.user)
-
-        serializer = PatientVaccineSerializer(patient_vaccine, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def delete(self, request, pk):
-        patient_vaccine = get_object_or_404(PatientVaccine, pk=pk, user=request.user)
-        patient_vaccine.delete()
-        return Response({"message": "Patient vaccine entry deleted."}, status=status.HTTP_200_OK)
