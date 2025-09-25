@@ -1,7 +1,6 @@
 from django.urls import path
 from patientApp.views import PatientViews, PatientMarkActive, PatientMarkInactive, PatientSearch, \
-    PatientVaccineViews, MarkVaccineCompletedView, MarkVaccinePendingView, VaccineSearch, UpcomingAppointmentsView, \
-    CreatePatientVaccineView
+    PatientVaccineViews, MarkVaccineCompletedView, MarkVaccinePendingView, VaccineSearch, UpcomingAppointmentsView
 
 urlpatterns = [
     path("patient/", PatientViews.as_view(), name="patient"),
@@ -21,8 +20,6 @@ urlpatterns = [
     path('vaccine/search/', VaccineSearch.as_view(), name='search'),
 
     path('upcoming/appointments/', UpcomingAppointmentsView.as_view(), name='upcoming_appointments'),
-
-    path("add/patient/vaccines/<int:patient_id>/", CreatePatientVaccineView.as_view(), name="create_vaccine"),
 
 ]
 
