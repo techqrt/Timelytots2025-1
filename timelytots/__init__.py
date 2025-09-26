@@ -1,8 +1,3 @@
-from celery_app import Celery
-import os
+from .celery import app as celery_app
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'timelytots.settings')
-
-app = Celery('timelytots')
-app.config_from_object('django.conf:settings', namespace='CELERY')
-app.autodiscover_tasks()
+__all__ = ["celery_app"]
