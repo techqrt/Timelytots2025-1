@@ -5,6 +5,7 @@ import os
 from django.utils import timezone
 from patientApp.models import PatientVaccine  # Adjust the import based on your project structure
 from celery import shared_task
+import datetime
 
 WHATSAPP_API_URL = "https://graph.facebook.com/v20.0/<your_phone_number_id>/messages"
 WHATSAPP_ACCESS_TOKEN = os.getenv("WHATSAPP_ACCESS_TOKEN")  # set in .env
@@ -146,6 +147,10 @@ def send_registered_whatsapp(mobile_number, child_name, doctor_name):
     response = requests.post(url, json=payload, headers=headers)
     return response.json()
 
+@shared_task
+def test_celery():
+    print(f"[{datetime.datetime.now()}] Celery is working!")
+    return "Success"
 
 # Call the task periodically using Celery Beat
 # In your settings.py, add the following:
