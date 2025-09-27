@@ -135,12 +135,13 @@ CELERY_RESULT_BACKEND = 'redis://localhost:6379/1'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = 'Asia/Kolkata' 
+CELERY_TIMEZONE = 'UTC'
+CELERY_ENABLE_UTC = True
 
 CELERY_BEAT_SCHEDULE = {
     'send-reminders-every-day': {
         'task': 'doctorApp.utils.send_vaccination_reminders',
-        'schedule': crontab(hour=8, minute=0),  # Adjust the time as needed
+        'schedule': crontab(hour=3, minute=30),  # Adjust the time as needed
     },
 }
 
