@@ -54,7 +54,7 @@ class VaccineSchedule(models.Model):
         null=True, blank=True,
         related_name="custom_vaccine_schedules"
     )
-    age = models.CharField(max_length=20, choices=AgeChoices.choices, blank=True, null=True)
+    age = models.DateField(blank=True, null=True)
 
     due_date = models.DateField(blank=True, null=True)
 
