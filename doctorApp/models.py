@@ -54,15 +54,11 @@ class VaccineSchedule(models.Model):
         null=True, blank=True,
         related_name="custom_vaccine_schedules"
     )
-    age = models.CharField(max_length=20, choices=AgeChoices.choices)
+    age = models.CharField(max_length=20, choices=AgeChoices.choices, blank=True, null=True)
+
+    due_date = models.DateField(blank=True, null=True)
+
     vaccine = models.CharField(max_length=150)
     
     def __str__(self):
         return f"{self.age} → {self.vaccine}"
-
-
-
-
-
-
-

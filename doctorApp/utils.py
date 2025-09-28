@@ -45,8 +45,8 @@ def send_whatsapp_template(to, template_name, components=None):
 # --------------------------
 # MSG91 WhatsApp Reminder
 # --------------------------
-def send_whatsapp_reminder(mobile_number, child_name, doctor_name, due_date):
-    """Send vaccine reminder via MSG91 WhatsApp API."""
+def send_whatsapp_reminder(mobile_number, child_name, doctor_name, due_date, vaccine_name):
+    """Send vaccine reminder via MSG91 WhatsApp API with vaccine name included."""
     url = "https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/"
     headers = {
         "Content-Type": "application/json",
@@ -77,13 +77,16 @@ def send_whatsapp_reminder(mobile_number, child_name, doctor_name, due_date):
                             },
                             "body_2": {
                                 "type": "text",
-                                "value": f"The following vaccine(s) are due on: {due_date}"
+                                "value": f"The following vaccine(s) are due on {due_date}: - {vaccine_name}"
                             },
                             "body_3": {
                                 "type": "text",
                                 "value": f"Please contact {doctor_name} to schedule an appointment or if you have any questions."
                             },
-                            "body_4": {"type": "text", "value": "You can reach them at: {{6}}."},
+                            "body_4": {
+                                "type": "text",
+                                "value": f"You can reach them at: +{mobile_number}."
+                            },
                             "body_5": {"type": "text", "value": "Thank you,"},
                             "body_6": {"type": "text", "value": "Timely Tots Team"},
                         },
@@ -154,11 +157,17 @@ def send_vaccination_reminders():
             mobile_number = vaccination.patient.mobile_number
             child_name = vaccination.patient.child_name
             doctor_name = vaccination.user.full_name
+            vaccine_name = (
+                vaccination.custom_vaccine
+                if vaccination.custom_vaccine
+                else vaccination.vaccine_schedule.vaccine
+            )
 
             response = send_whatsapp_reminder(
-                mobile_number, child_name, doctor_name, due_date
+                mobile_number, child_name, doctor_name, due_date, vaccine_name
             )
             logger.info(f"Reminder attempted for {mobile_number}, response: {response}")
+
     return "Reminder job completed."
 
 

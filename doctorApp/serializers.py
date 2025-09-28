@@ -55,6 +55,7 @@ class CustomVaccineScheduleSerializer(serializers.ModelSerializer):
             "clinic_doctor",
             "doctor_name",
             "age",
+            "due_date",
             "vaccine",
             "account_type",
             "patient_id",       
