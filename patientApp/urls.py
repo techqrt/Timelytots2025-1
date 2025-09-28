@@ -1,6 +1,5 @@
 from django.urls import path
-from patientApp.views import PatientViews, PatientMarkActive, PatientMarkInactive, PatientSearch, \
-    PatientVaccineViews, MarkVaccineCompletedView, MarkVaccinePendingView, VaccineSearch, UpcomingAppointmentsView
+from patientApp.views import *
 
 urlpatterns = [
     path("patient/", PatientViews.as_view(), name="patient"),

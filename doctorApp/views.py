@@ -179,8 +179,7 @@ class VaccineScheduleViews(APIView):
 
         schedule.delete()
         return Response({"message": "Schedule deleted successfully."}, status=status.HTTP_200_OK)
-
-
+        
 class AssignPatientVaccineView(APIView):
     permission_classes = [IsAuthenticated]
     authentication_classes = [JWTAuthentication]
@@ -197,7 +196,6 @@ class AssignPatientVaccineView(APIView):
                 "clinic_doctor": vaccine_schedule.clinic_doctor.id if vaccine_schedule.clinic_doctor else None,
                 "doctor_name": vaccine_schedule.clinic_doctor.name if vaccine_schedule.clinic_doctor else "Clinic",
                 "age": vaccine_schedule.age,
-                "due_date": vaccine_schedule.due_date,
                 "vaccine": vaccine_schedule.vaccine,
                 "account_type": vaccine_schedule.account_type
             }, status=status.HTTP_201_CREATED)
@@ -223,8 +221,7 @@ class AssignPatientVaccineView(APIView):
             return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
 
         if vaccine_schedule.user.is_staff:
-            return Response({"error": "You cannot edit vaccine schedules added by admin."},
-                            status=status.HTTP_403_FORBIDDEN)
+            return Response({"error": "You cannot edit vaccine schedules added by admin."}, status=status.HTTP_403_FORBIDDEN)
 
         serializer = CustomVaccineScheduleSerializer(
             vaccine_schedule,
@@ -236,8 +233,7 @@ class AssignPatientVaccineView(APIView):
             return Response({
                 "id": updated.id,
                 "patient": updated.patient.id if updated.patient else None,
-                "patient_name": getattr(updated.patient, "child_name",
-                                        str(updated.patient)) if updated.patient else None,
+                "patient_name": getattr(updated.patient, "child_name", str(updated.patient)) if updated.patient else None,
                 "clinic_doctor": updated.clinic_doctor.id if updated.clinic_doctor else None,
                 "doctor_name": updated.clinic_doctor.name if updated.clinic_doctor else None,
                 "age": updated.age,
@@ -252,8 +248,10 @@ class AssignPatientVaccineView(APIView):
             return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
 
         if vaccine_schedule.user.is_staff:
-            return Response({"error": "You cannot delete vaccine schedules added by admin."},
-                            status=status.HTTP_403_FORBIDDEN)
+            return Response({"error": "You cannot delete vaccine schedules added by admin."}, status=status.HTTP_403_FORBIDDEN)
 
         vaccine_schedule.delete()
         return Response({"detail": "Deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+
+
+

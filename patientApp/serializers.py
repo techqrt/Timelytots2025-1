@@ -181,4 +181,3 @@ class UpcomingPatientVaccineSerializer(serializers.ModelSerializer):
             "patient",
         ]
 
-
