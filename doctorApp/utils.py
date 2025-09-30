@@ -5,6 +5,7 @@ import logging
 from django.conf import settings
 from django.utils import timezone
 from patientApp.models import PatientVaccine
+from doctorApp.models import ReminderLog
 from celery import shared_task
 
 # Setup logger
@@ -147,8 +148,8 @@ def send_vaccination_reminders():
     upcoming_vaccinations = PatientVaccine.objects.filter(
         due_date__gte=today, status="Upcoming"
     )
-    reminder_periods = [15, 7, 3, 0]  # Days before due date
-
+    reminder_periods = [15, 7, 3, 0]
+    print("Started sending vaccination reminders...")
     for vaccination in upcoming_vaccinations:
         due_date = vaccination.due_date
         days_left = (due_date - today).days
@@ -166,7 +167,22 @@ def send_vaccination_reminders():
             response = send_whatsapp_reminder(
                 mobile_number, child_name, doctor_name, due_date, vaccine_name
             )
-            logger.info(f"Reminder attempted for {mobile_number}, response: {response}")
+
+            status = "success" if response.get("type") != "error" else "failed"
+
+            # Save log to DB
+            ReminderLog.objects.create(
+                reminder_type="vaccination",
+                recipient=mobile_number,
+                child_name=child_name,
+                doctor_name=doctor_name,
+                vaccine_name=vaccine_name,
+                due_date=due_date,
+                status=status,
+                response=response,
+            )
+
+            logger.info(f"Reminder logged for {mobile_number}, status={status}")
 
     return "Reminder job completed."
 

@@ -1,6 +1,6 @@
 from django.urls import path
 from doctorApp.views import ClinicDoctorViews, DoctorMarkActive, DoctorMarkInactive, VaccineScheduleViews, \
-    AssignPatientVaccineView
+    AssignPatientVaccineView, VaccineReminderAPIView
 
 urlpatterns = [
     path("clinic/doctor/", ClinicDoctorViews.as_view(), name="clinic_doctor"),
@@ -14,5 +14,7 @@ urlpatterns = [
 
     path('add/patient/vaccines/', AssignPatientVaccineView.as_view(), name='assign-patient-vaccine'),
     path("patient/vaccines/<int:pk>/", AssignPatientVaccineView.as_view(), name="vaccine_schedule_detail"),
+    
+    path("send/vaccine/reminders/", VaccineReminderAPIView.as_view(), name="send-vaccine-reminders"),
 ]
 

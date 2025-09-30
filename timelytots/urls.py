@@ -8,9 +8,8 @@ urlpatterns = [
     path('auth/', include('authenticationApp.urls')),
     path('api/', include('patientApp.urls')),
     path('api/', include('doctorApp.urls')),
+    path('api/', include('analyticsApp.urls')),
 ]
-
-
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

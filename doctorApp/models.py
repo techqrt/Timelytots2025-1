@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-
+from django.utils import timezone
 from authenticationApp.models import User
 
 
@@ -54,8 +54,37 @@ class VaccineSchedule(models.Model):
         null=True, blank=True,
         related_name="custom_vaccine_schedules"
     )
-    age = models.CharField(max_length=20, choices=AgeChoices.choices)
+    age = models.CharField(max_length=20, choices=AgeChoices.choices, blank=True, null=True)
+
+    due_date = models.DateField(blank=True, null=True)
+
     vaccine = models.CharField(max_length=150)
     
+    # def __str__(self):
+    #     return f"{self.age} → {self.vaccine}"
+    
     def __str__(self):
-        return f"{self.age} → {self.vaccine}"
+        age_display = self.age if self.age else (self.due_date.strftime("%d-%m-%Y") if self.due_date else "No Age/Date")
+        added_by = "Admin" if self.user and self.user.is_staff else (self.user.full_name if self.user else "Unknown")
+        return f"{age_display} → {self.vaccine} (Added by: {added_by})"
+
+
+class ReminderLog(models.Model):
+    reminder_type = models.CharField(max_length=50, default="vaccination")
+    recipient = models.CharField(max_length=20)  # mobile/email
+    child_name = models.CharField(max_length=100, blank=True, null=True)
+    doctor_name = models.CharField(max_length=100, blank=True, null=True)
+    vaccine_name = models.CharField(max_length=100, blank=True, null=True)
+    due_date = models.DateField(blank=True, null=True)
+    status = models.CharField(max_length=20, default="pending")  # success/failed
+    response = models.JSONField(blank=True, null=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.recipient} - {self.reminder_type} ({self.status})"
+
+
+
+
+
+
