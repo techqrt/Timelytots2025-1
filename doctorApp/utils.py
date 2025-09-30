@@ -7,6 +7,7 @@ from django.utils import timezone
 from patientApp.models import PatientVaccine
 from doctorApp.models import ReminderLog
 from celery import shared_task
+from collections import defaultdict
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -147,42 +148,55 @@ def send_vaccination_reminders():
     today = timezone.now().date()
     upcoming_vaccinations = PatientVaccine.objects.filter(
         due_date__gte=today, status="Upcoming"
-    )
+    ).select_related("patient", "vaccine_schedule", "user")
+
     reminder_periods = [15, 7, 3, 0]
     print("Started sending vaccination reminders...")
+
+    # Group vaccines by patient
+    vaccines_by_patient = defaultdict(list)
     for vaccination in upcoming_vaccinations:
-        due_date = vaccination.due_date
-        days_left = (due_date - today).days
-
+        days_left = (vaccination.due_date - today).days
         if days_left in reminder_periods:
-            mobile_number = vaccination.patient.mobile_number
-            child_name = vaccination.patient.child_name
-            doctor_name = vaccination.user.full_name
-            vaccine_name = (
-                vaccination.custom_vaccine
-                if vaccination.custom_vaccine
-                else vaccination.vaccine_schedule.vaccine
-            )
+            vaccines_by_patient[vaccination.patient.id].append(vaccination)
 
-            response = send_whatsapp_reminder(
-                mobile_number, child_name, doctor_name, due_date, vaccine_name
-            )
+    for patient_id, patient_vaccines in vaccines_by_patient.items():
+        patient = patient_vaccines[0].patient
+        mobile_number = patient.mobile_number
+        child_name = patient.child_name
 
-            status = "success" if response.get("type") != "error" else "failed"
+        # Get doctor name from first vaccine (assuming same doctor for patient)
+        doctor_name = patient_vaccines[0].user.full_name
 
-            # Save log to DB
-            ReminderLog.objects.create(
-                reminder_type="vaccination",
-                recipient=mobile_number,
-                child_name=child_name,
-                doctor_name=doctor_name,
-                vaccine_name=vaccine_name,
-                due_date=due_date,
-                status=status,
-                response=response,
-            )
+        # Combine all vaccine names
+        vaccine_names = ", ".join(
+            v.custom_vaccine if v.custom_vaccine else v.vaccine_schedule.vaccine
+            for v in patient_vaccines
+        )
 
-            logger.info(f"Reminder logged for {mobile_number}, status={status}")
+        # Use the earliest due_date (or just today)
+        due_date = min(v.due_date for v in patient_vaccines)
+
+        # Send a single reminder
+        response = send_whatsapp_reminder(
+            mobile_number, child_name, doctor_name, due_date, vaccine_names
+        )
+
+        status = "success" if response.get("type") != "error" else "failed"
+
+        # Save log to DB
+        ReminderLog.objects.create(
+            reminder_type="vaccination",
+            recipient=mobile_number,
+            child_name=child_name,
+            doctor_name=doctor_name,
+            vaccine_name=vaccine_names,
+            due_date=due_date,
+            status=status,
+            response=response,
+        )
+
+        logger.info(f"Reminder logged for {mobile_number}, status={status}")
 
     return "Reminder job completed."
 
