@@ -84,7 +84,7 @@ class UserVaccineMessageCountView(APIView):
             month = request.GET.get("month")
             year = request.GET.get("year")
 
-            logs = VaccineReminderLog.objects.filter(user=user)
+            logs = ReminderLog.objects.filter(user=user)
 
             if month and month.lower() != "all":
                 logs = logs.filter(sent_at__month=int(month))
