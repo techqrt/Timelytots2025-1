@@ -47,7 +47,7 @@ def send_whatsapp_template(to, template_name, components=None):
 # --------------------------
 # MSG91 WhatsApp Reminder
 # --------------------------
-def send_whatsapp_reminder(mobile_number, child_name, doctor_name, due_date, vaccine_name):
+def send_whatsapp_reminder(mobile_number, child_name, doctor_name, due_date, vaccine_name,age):
     """Send vaccine reminder via MSG91 WhatsApp API with vaccine name included."""
     url = "https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/"
     headers = {
@@ -73,26 +73,14 @@ def send_whatsapp_reminder(mobile_number, child_name, doctor_name, due_date, vac
                     {
                         "to": [mobile_number],
                         "components": {
-                            "body_1": {
-                                "type": "text",
-                                "value": f"Dear Parents, This is a friendly vaccine reminder for your child, {child_name}."
-                            },
-                            "body_2": {
-                                "type": "text",
-                                "value": f"The following vaccine(s) are due on {due_date}: - {vaccine_name}"
-                            },
-                            "body_3": {
-                                "type": "text",
-                                "value": f"Please contact {doctor_name} to schedule an appointment or if you have any questions."
-                            },
-                            "body_4": {
-                                "type": "text",
-                                "value": f"You can reach them at: +{mobile_number}."
-                            },
-                            "body_5": {"type": "text", "value": "Thank you,"},
-                            "body_6": {"type": "text", "value": "Timely Tots Team"},
+                            "body_1": {"type": "text", "value": child_name},      # {{1}}
+                            "body_2": {"type": "text", "value": str(due_date)},   # {{2}}
+                            "body_3": {"type": "text", "value": vaccine_name},    # {{3}}
+                            "body_4": {"type": "text", "value": age},             # {{4}}
+                            "body_5": {"type": "text", "value": doctor_name},     # {{5}}
+                            "body_6": {"type": "text", "value": f"+{mobile_number}"} # {{6}}
                         },
-                    }
+                    },
                 ],
             },
         },
@@ -100,6 +88,7 @@ def send_whatsapp_reminder(mobile_number, child_name, doctor_name, due_date, vac
 
     response = requests.post(url, headers=headers, json=payload)
     return _handle_response(response)
+
 
 
 def send_registered_whatsapp(mobile_number, child_name, doctor_name):
@@ -177,9 +166,12 @@ def send_vaccination_reminders():
         # Use the earliest due_date (or just today)
         due_date = min(v.due_date for v in patient_vaccines)
 
+        # Get age from vaccine_schedule of the first vaccine
+        age = patient_vaccines[0].vaccine_schedule.age
+
         # Send a single reminder
         response = send_whatsapp_reminder(
-            mobile_number, child_name, doctor_name, due_date, vaccine_names
+            mobile_number, child_name, doctor_name, due_date, vaccine_names, age
         )
 
         status = "success" if response.get("type") != "error" else "failed"
