@@ -143,7 +143,8 @@ CELERY_ENABLE_UTC = False
 CELERY_BEAT_SCHEDULE = {
     'send-reminders-every-day': {
         'task': 'doctorApp.utils.send_vaccination_reminders',
-        'schedule': crontab(hour=12, minute=15), # 12:15 PM IST
+        'schedule': crontab(hour=10, minute=0), # 10:00 AM IST
     },
 }
 
+    
