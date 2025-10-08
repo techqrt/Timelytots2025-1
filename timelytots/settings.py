@@ -58,8 +58,12 @@ WSGI_APPLICATION = 'timelytots.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'postgres',                # or your DB name
+        'USER': 'postgres',                # your DB username
+        'PASSWORD': '35mGRrbePT',        # your DB password
+        'HOST': 'localhost',               # since DB and app are on same EC2
+        'PORT': '5432',
     }
 }
 
