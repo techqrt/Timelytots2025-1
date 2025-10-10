@@ -73,6 +73,7 @@ class ReminderLog(models.Model):
     reminder_type = models.CharField(max_length=50, default="vaccination")
     recipient = models.CharField(max_length=20)  # mobile/email
     child_name = models.CharField(max_length=100, blank=True, null=True)
+    doctor_id = models.CharField(max_length=100, blank=True, null=True)
     doctor_name = models.CharField(max_length=100, blank=True, null=True)
     vaccine_name = models.CharField(max_length=100, blank=True, null=True)
     due_date = models.DateField(blank=True, null=True)

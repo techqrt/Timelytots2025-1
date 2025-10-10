@@ -156,6 +156,7 @@ def send_vaccination_reminders():
 
         # Get doctor name from first vaccine (assuming same doctor for patient)
         doctor_name = patient_vaccines[0].user.full_name
+        doctor_id = patient_vaccines[0].user.id
 
         # Combine all vaccine names
         vaccine_names = ", ".join(
@@ -182,6 +183,7 @@ def send_vaccination_reminders():
             recipient=mobile_number,
             child_name=child_name,
             doctor_name=doctor_name,
+            doctor_id=str(doctor_id),
             vaccine_name=vaccine_names,
             due_date=due_date,
             status=status,

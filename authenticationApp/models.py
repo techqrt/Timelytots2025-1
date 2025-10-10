@@ -26,6 +26,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         ("clinic", "Clinic / Hospital"),
     ]
 
+    BILLING_METHOD = [
+        ('Per Message', 'Per Message'),
+        ('Monthly Subscription', 'Monthly Subscription'),
+        ('Per Message + Monthly Subscription', 'Per Message + Monthly Subscription'),
+    ]
+
     account_type = models.CharField(max_length=20, choices=ACCOUNT_TYPE_CHOICES)
     full_name = models.CharField(max_length=200)
     contact_number = models.CharField(max_length=15)
@@ -34,6 +40,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     address = models.TextField(blank=True, null=True)
     terms_accepted = models.BooleanField(default=False)
+
+    billing_method = models.CharField(choices=BILLING_METHOD, max_length=155, blank=True, null=True)
+    monthly_subscription_fees = models.PositiveIntegerField(blank=True, null=True)
+    per_message_charges = models.PositiveIntegerField(blank=True, null=True)
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)

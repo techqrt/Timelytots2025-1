@@ -23,7 +23,8 @@ INSTALLED_APPS = [
     'authenticationApp',
     'patientApp',
     'doctorApp',
-    'analyticsApp'
+    'analyticsApp',
+    'dashboardApp',
 ]
 
 MIDDLEWARE = [
@@ -62,7 +63,7 @@ DATABASES = {
         'NAME': 'postgres',                # or your DB name
         'USER': 'postgres',                # your DB username
         'PASSWORD': '35mGRrbePT',        # your DB password
-        'HOST': 'localhost',               # since DB and app are on same EC2
+        'HOST': '54.90.125.245',               # since DB and app are on same EC2
         'PORT': '5432',
     }
 }
@@ -141,8 +142,13 @@ CELERY_RESULT_BACKEND = 'redis://localhost:6379/1'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = "Asia/Kolkata"
-CELERY_ENABLE_UTC = False
+# Django timezone
+TIME_ZONE = 'Asia/Kolkata'
+USE_TZ = True
+
+# Celery timezone config
+CELERY_ENABLE_UTC = True
+CELERY_TIMEZONE = 'Asia/Kolkata'
 
 CELERY_BEAT_SCHEDULE = {
     'send-reminders-every-day': {
