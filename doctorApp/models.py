@@ -72,10 +72,10 @@ class VaccineSchedule(models.Model):
 class ReminderLog(models.Model):
     reminder_type = models.CharField(max_length=50, default="vaccination")
     recipient = models.CharField(max_length=20)  # mobile/email
-    child_name = models.CharField(max_length=100, blank=True, null=True)
-    doctor_id = models.CharField(max_length=100, blank=True, null=True)
-    doctor_name = models.CharField(max_length=100, blank=True, null=True)
-    vaccine_name = models.CharField(max_length=100, blank=True, null=True)
+    child_name = models.CharField(max_length=500, blank=True, null=True)
+    doctor_id = models.CharField(max_length=500, blank=True, null=True)
+    doctor_name = models.CharField(max_length=500, blank=True, null=True)
+    vaccine_name = models.CharField(max_length=500, blank=True, null=True)
     due_date = models.DateField(blank=True, null=True)
     status = models.CharField(max_length=20, default="pending")  # success/failed
     response = models.JSONField(blank=True, null=True)
