@@ -107,6 +107,7 @@ def update_billing_from_reminder(sender, instance, created, **kwargs):
 
     if doctor.billing_method in ["Monthly Subscription"]:
         billing.total_message_sent += 1
+        billing.billing_subtotal += Decimal(doctor.monthly_subscription_fees or 0)
 
     # Compute subtotal + subscription if applicable
     subtotal = billing.billing_subtotal
