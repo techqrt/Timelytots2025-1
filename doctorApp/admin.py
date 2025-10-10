@@ -10,7 +10,7 @@ from . import utils
 
 @admin.register(ReminderLog)
 class ReminderLogAdmin(admin.ModelAdmin):
-    list_display = ("reminder_type", "recipient", "child_name", "doctor_name", "vaccine_name", "due_date", "status", "created_at")
+    list_display = ("id","reminder_type", "recipient", "child_name", "doctor_name", "vaccine_name", "due_date", "status", "created_at")
     list_filter = ("reminder_type", "status", "created_at")
     search_fields = ("recipient", "child_name", "doctor_name", "vaccine_name")
 

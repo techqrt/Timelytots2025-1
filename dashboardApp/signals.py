@@ -55,6 +55,11 @@ def update_total_revenue(sender, **kwargs):
 
 @receiver(post_save, sender=apps.get_model("doctorApp", "ReminderLog"))
 def update_billing_from_reminder(sender, instance, created, **kwargs):
+    """
+    Automatically updates billing when a successful reminder is sent.
+    Handles: Individual Doctors + Clinic Doctors.
+    For 'Monthly Subscription' only increments message count (no cost added).
+    """
     if not created or instance.status != "success":
         return
 
@@ -65,6 +70,7 @@ def update_billing_from_reminder(sender, instance, created, **kwargs):
     try:
         doctor = User.objects.get(id=doctor_id)
     except User.DoesNotExist:
+        print(f"⚠️ No User found with ID={doctor_id}, skipping billing.")
         return
 
     if doctor.billing_method not in [
@@ -74,20 +80,8 @@ def update_billing_from_reminder(sender, instance, created, **kwargs):
     ]:
         return
 
-    # Skip if doctor has no defined per-message rate or monthly fee
-    if (
-        doctor.billing_method in ["Per Message", "Per Message + Monthly Subscription"]
-        and not doctor.per_message_charges
-    ):
-        return
-    if (
-        doctor.billing_method in ["Monthly Subscription", "Per Message + Monthly Subscription"]
-        and not doctor.monthly_subscription_fees
-    ):
-        return
-
-    # Get or create billing entry
-    billing, created = BillingManagement.objects.get_or_create(
+    # Ensure there’s a BillingManagement record (create if missing)
+    billing, _ = BillingManagement.objects.get_or_create(
         user=doctor,
         billing_method=doctor.billing_method,
         payment_status="Pending",
@@ -100,20 +94,35 @@ def update_billing_from_reminder(sender, instance, created, **kwargs):
         },
     )
 
-    # Update per-message billing
+    # ✅ Always increment message count (for reporting/analytics)
+    billing.total_message_sent += 1
+
+    # 💰 Only charge for per-message or hybrid billing
     if doctor.billing_method in ["Per Message", "Per Message + Monthly Subscription"]:
-        billing.total_message_sent += 1
-        billing.billing_subtotal += Decimal(doctor.per_message_charges)
+        if doctor.per_message_charges:
+            billing.billing_subtotal += Decimal(doctor.per_message_charges)
+        else:
+            print(f"⚠️ No per_message_charges for {doctor.full_name}")
 
-    # Compute subtotal + subscription if applicable
-    subtotal = billing.billing_subtotal
-    subscription = Decimal(doctor.monthly_subscription_fees or 0)
-    combined_total = subtotal + subscription
+        # Include subscription in hybrid model
+        subscription_fee = (
+            Decimal(doctor.monthly_subscription_fees)
+            if doctor.billing_method == "Per Message + Monthly Subscription"
+            else Decimal("0.00")
+        )
 
-    # Compute GST
-    billing.gst_collected = combined_total * GST_RATE
+        combined_total = billing.billing_subtotal + subscription_fee
+        billing.gst_collected = combined_total * GST_RATE
+        billing.total_bill_with_gst = combined_total + billing.gst_collected
 
-    # Compute final total
-    billing.total_bill_with_gst = combined_total + billing.gst_collected
+    # 🧾 For Monthly Subscription only → no charges, no GST
+    elif doctor.billing_method == "Monthly Subscription":
+        billing.gst_collected = Decimal("0.00")
+        billing.total_bill_with_gst = Decimal("0.00")
 
     billing.save()
+    print(
+        f"✅ Billing updated for {doctor.full_name} ({doctor.billing_method}) "
+        f"→ Total messages: {billing.total_message_sent}, "
+        f"Total Bill: {billing.total_bill_with_gst}"
+    )
