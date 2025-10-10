@@ -157,7 +157,7 @@ def send_vaccination_reminders():
         # Get doctor name from first vaccine (assuming same doctor for patient)
         doctor_name = patient_vaccines[0].user.full_name
         doctor_id = patient_vaccines[0].user.id
-
+        
         # Combine all vaccine names
         vaccine_names = ", ".join(
             v.custom_vaccine if v.custom_vaccine else v.vaccine_schedule.vaccine
@@ -168,7 +168,9 @@ def send_vaccination_reminders():
         due_date = min(v.due_date for v in patient_vaccines)
 
         # Get age from vaccine_schedule of the first vaccine
-        age = patient_vaccines[0].vaccine_schedule.age
+        vaccine_schedule = patient_vaccines[0].vaccine_schedule
+        age = vaccine_schedule.age or str(vaccine_schedule.due_date)
+
 
         # Send a single reminder
         response = send_whatsapp_reminder(
