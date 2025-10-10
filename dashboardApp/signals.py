@@ -100,24 +100,25 @@ def update_billing_from_reminder(sender, instance, created, **kwargs):
         },
     )
 
-    # Update per-message billing
-    if doctor.billing_method in ["Per Message", "Per Message + Monthly Subscription"]:
-        billing.total_message_sent += 1
+    # Increment total message count (for all billing types)
+    billing.total_message_sent += 1
+
+    # Update billing_subtotal logic
+    if doctor.billing_method == "Per Message":
         billing.billing_subtotal += Decimal(doctor.per_message_charges)
 
-    if doctor.billing_method in ["Monthly Subscription"]:
-        billing.total_message_sent += 1
-        billing.billing_subtotal += Decimal(doctor.monthly_subscription_fees or 0)
+    elif doctor.billing_method == "Monthly Subscription":
+        # Subtotal should be the monthly subscription amount
+        billing.billing_subtotal = Decimal(doctor.monthly_subscription_fees)
 
-    # Compute subtotal + subscription if applicable
-    subtotal = billing.billing_subtotal
-    subscription = Decimal(doctor.monthly_subscription_fees or 0)
-    combined_total = subtotal + subscription
+    elif doctor.billing_method == "Per Message + Monthly Subscription":
+        # Add both per message + subscription
+        billing.billing_subtotal += Decimal(doctor.per_message_charges) + Decimal(
+            doctor.monthly_subscription_fees
+        )
 
-    # Compute GST
-    billing.gst_collected = combined_total * GST_RATE
-
-    # Compute final total
-    billing.total_bill_with_gst = combined_total + billing.gst_collected
+    # Compute GST and total
+    billing.gst_collected = billing.billing_subtotal * GST_RATE
+    billing.total_bill_with_gst = billing.billing_subtotal + billing.gst_collected
 
     billing.save()
