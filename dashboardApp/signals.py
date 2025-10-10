@@ -53,33 +53,40 @@ def update_total_revenue(sender, **kwargs):
     analytics.save()
 
 
-@receiver(post_save, sender=apps.get_model('doctorApp', 'ReminderLog'))
+@receiver(post_save, sender=apps.get_model("doctorApp", "ReminderLog"))
 def update_billing_from_reminder(sender, instance, created, **kwargs):
-    print("🔔 ReminderLog saved:", instance.id, instance.status, created)  # Debug check
     if not created or instance.status != "success":
-        print("❌ Not created or not success, skipping")
         return
 
     doctor_id = instance.doctor_id
     if not doctor_id:
-        print("❌ No doctor_id found, skipping")
         return
 
     try:
         doctor = User.objects.get(id=doctor_id)
-        print("✅ Found doctor:", doctor.full_name)
     except User.DoesNotExist:
-        print("❌ Doctor not found:", doctor_id)
         return
 
-    if doctor.billing_method not in ["Per Message", "Per Message + Monthly Subscription"]:
-        print("🚫 Not eligible billing method:", doctor.billing_method)
+    if doctor.billing_method not in [
+        "Per Message",
+        "Monthly Subscription",
+        "Per Message + Monthly Subscription",
+    ]:
         return
 
-    if not doctor.per_message_charges:
-        print("🚫 Missing per_message_charges")
+    # Skip if doctor has no defined per-message rate or monthly fee
+    if (
+        doctor.billing_method in ["Per Message", "Per Message + Monthly Subscription"]
+        and not doctor.per_message_charges
+    ):
+        return
+    if (
+        doctor.billing_method in ["Monthly Subscription", "Per Message + Monthly Subscription"]
+        and not doctor.monthly_subscription_fees
+    ):
         return
 
+    # Get or create billing entry
     billing, created = BillingManagement.objects.get_or_create(
         user=doctor,
         billing_method=doctor.billing_method,
@@ -93,9 +100,20 @@ def update_billing_from_reminder(sender, instance, created, **kwargs):
         },
     )
 
-    billing.total_message_sent += 1
-    billing.billing_subtotal += Decimal(doctor.per_message_charges)
-    billing.gst_collected = billing.billing_subtotal * GST_RATE
-    billing.total_bill_with_gst = billing.billing_subtotal + billing.gst_collected
+    # Update per-message billing
+    if doctor.billing_method in ["Per Message", "Per Message + Monthly Subscription"]:
+        billing.total_message_sent += 1
+        billing.billing_subtotal += Decimal(doctor.per_message_charges)
+
+    # Compute subtotal + subscription if applicable
+    subtotal = billing.billing_subtotal
+    subscription = Decimal(doctor.monthly_subscription_fees or 0)
+    combined_total = subtotal + subscription
+
+    # Compute GST
+    billing.gst_collected = combined_total * GST_RATE
+
+    # Compute final total
+    billing.total_bill_with_gst = combined_total + billing.gst_collected
+
     billing.save()
-    print("✅ Billing updated for", doctor.full_name, "→", billing.total_message_sent)
