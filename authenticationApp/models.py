@@ -40,6 +40,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     address = models.TextField(blank=True, null=True)
     terms_accepted = models.BooleanField(default=False)
+    fcm_token = models.TextField(blank=True, null=True, default="dDAd6XyCTyO4nCHxCXjMg1:APA91bFjRTx30KfuaWcXbi0voEtwwb2jVzcXttr_QsgMR64cx7LKzxqI2xZVOXyM3UCus4145-1n-TErc-p9qZmF6Uzhn5AvTaKgi_GbSNMzWMuNpb83WWU")
 
     billing_method = models.CharField(choices=BILLING_METHOD, max_length=155, blank=True, null=True)
     monthly_subscription_fees = models.PositiveIntegerField(blank=True, null=True)

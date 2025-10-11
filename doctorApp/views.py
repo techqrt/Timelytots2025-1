@@ -3,7 +3,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.db import models
 from authenticationApp.models import ClinicDoctor
-from doctorApp.models import VaccineSchedule
+from doctorApp.models import VaccineSchedule, ReminderLog, FirebaseNotificationLog
+from doctorApp.serializers import FirebaseNotificationLogSerializer
 from doctorApp.serializers import ClinicDoctorSerializers, VaccineScheduleSerializer, CustomVaccineScheduleSerializer
 from rest_framework import status
 from rest_framework.response import Response
@@ -412,7 +413,7 @@ class VaccineReminderAPIView(APIView):
 
                 if response.status_code == 200:
                     messages_sent += 1
-                    VaccineReminderLog.objects.create(
+                    ReminderLog.objects.create(
                         user=vaccine.patient.user,
                         patient_name=child_name,
                         vaccine_name=vaccine_names
@@ -429,3 +430,38 @@ class VaccineReminderAPIView(APIView):
 
 
 
+
+class FirebaseNotificationByDoctorView(APIView):
+    """
+    Get all Firebase notifications for a specific doctor.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, doctor_id):
+        try:
+            notifications = FirebaseNotificationLog.objects.filter(
+                doctor_id=str(doctor_id)
+            ).order_by("-created_at")
+
+            if not notifications.exists():
+                return Response(
+                    {"message": "No notifications found for this doctor."},
+                    status=status.HTTP_204_NO_CONTENT
+                )
+
+            serializer = FirebaseNotificationLogSerializer(notifications, many=True)
+            return Response(
+                {
+                    "doctor_id": str(doctor_id),
+                    "count": notifications.count(),
+                    "notifications": serializer.data,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except Exception as e:
+            return Response(
+                {"error": f"Failed to fetch notifications: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

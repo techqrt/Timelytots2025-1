@@ -1,15 +1,15 @@
 import os
 import datetime
 import requests
-import logging
-from django.conf import settings
 from django.utils import timezone
 from patientApp.models import PatientVaccine
 from doctorApp.models import ReminderLog
 from celery import shared_task
 from collections import defaultdict
+from django.conf import settings
+import logging
 
-# Setup logger
+
 logger = logging.getLogger(__name__)
 
 # WhatsApp API configs

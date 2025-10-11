@@ -3,11 +3,17 @@ from pathlib import Path
 import os
 from celery.schedules import crontab
 
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+FIREBASE_CREDENTIALS_PATH = os.path.join(BASE_DIR, "firebase_service_account.json")
+ENABLE_FIREBASE = True
 
 SECRET_KEY = 'django-insecure-^p1@sdj8h)4b!r1_0p6)9)drs!aq&wp@1+tafux9)kn$ll(y1$'
 
 DEBUG = True
+
 
 ALLOWED_HOSTS = ['*']
 
@@ -63,7 +69,7 @@ DATABASES = {
         'NAME': 'postgres',                # or your DB name
         'USER': 'postgres',                # your DB username
         'PASSWORD': '35mGRrbePT',        # your DB password
-        'HOST': 'localhost',               # since DB and app are on same EC2
+        'HOST': '54.90.125.245',               # since DB and app are on same EC2
         'PORT': '5432',
     }
 }
@@ -106,12 +112,12 @@ AUTH_USER_MODEL = "authenticationApp.User"
 
 # -------- Email -------- #
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST = 'smtp-relay.brevo.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'harshadkumbhar28@gmail.com'
-EMAIL_HOST_PASSWORD = 'blru tyrs dnjd umuv'
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+EMAIL_HOST_USER = '98e328001@smtp-brevo.com'
+EMAIL_HOST_PASSWORD = 'PpA3RwFdV2y1fYhC'
+DEFAULT_FROM_EMAIL = 'timelytots@gmail.com'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -151,9 +157,16 @@ CELERY_ENABLE_UTC = True
 CELERY_TIMEZONE = 'Asia/Kolkata'
 
 CELERY_BEAT_SCHEDULE = {
+    # 🕙 Existing vaccination reminders
     'send-reminders-every-day': {
         'task': 'doctorApp.utils.send_vaccination_reminders',
-        'schedule': crontab(hour=10, minute=0), # 10:00 AM IST
+        'schedule': crontab(hour=10, minute=0),  # 10:00 AM IST
+    },
+
+    # 🔔 New: missed vaccine Firebase notifications
+    'send-missed-vaccine-notifications-every-day': {
+        'task': 'dashboardApp.utils.send_missed_vaccine_notifications',
+        'schedule': crontab(hour=11, minute=0),  # 11:00 AM IST
     },
 }
 

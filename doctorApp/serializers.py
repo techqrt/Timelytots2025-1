@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from authenticationApp.models import ClinicDoctor, User
-from doctorApp.models import VaccineSchedule
+from doctorApp.models import VaccineSchedule, FirebaseNotificationLog
 from patientApp.models import PatientVaccine, Patient
 
 
@@ -91,3 +91,17 @@ class CustomVaccineScheduleSerializer(serializers.ModelSerializer):
 
 
 
+class FirebaseNotificationLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FirebaseNotificationLog
+        fields = [
+            "id",
+            "doctor_id",
+            "patient_id",
+            "title",
+            "body",
+            "status",
+            "data",
+            "response",
+            "created_at",
+        ]
