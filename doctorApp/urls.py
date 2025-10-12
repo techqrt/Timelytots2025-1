@@ -16,10 +16,5 @@ urlpatterns = [
     path("patient/vaccines/<int:pk>/", AssignPatientVaccineView.as_view(), name="vaccine_schedule_detail"),
     
     path("send/vaccine/reminders/", VaccineReminderAPIView.as_view(), name="send-vaccine-reminders"),
-    path(
-        "notifications/firebase/<str:doctor_id>/",
-        FirebaseNotificationByDoctorView.as_view(),
-        name="firebase_notifications_by_doctor",
-    ),
 ]
 
