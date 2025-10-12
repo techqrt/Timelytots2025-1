@@ -3,48 +3,10 @@ from django.urls import path
 from django.http import HttpResponseRedirect
 from django.contrib import messages
 
-from .models import VaccineSchedule, ReminderLog, FirebaseNotificationLog
+from .models import VaccineSchedule, ReminderLog
 from . import utils 
 
 # Register your models here.
-
-@admin.register(FirebaseNotificationLog)
-class FirebaseNotificationLogAdmin(admin.ModelAdmin):
-    list_display = (
-        "id",
-        "doctor_id",
-        "patient_id",
-        "title",
-        "status",
-        "created_at",
-    )
-    list_filter = ("status", "created_at")
-    search_fields = ("doctor_id", "patient_id", "title", "body")
-    readonly_fields = (
-        "doctor_id",
-        "patient_id",
-        "title",
-        "body",
-        "data",
-        "status",
-        "response",
-        "created_at",
-    )
-    ordering = ("-created_at",)
-    list_per_page = 50
-
-    fieldsets = (
-        ("Doctor & Patient Info", {
-            "fields": ("doctor_id", "patient_id")
-        }),
-        ("Notification Details", {
-            "fields": ("title", "body", "data", "status", "response")
-        }),
-        ("Timestamps", {
-            "fields": ("created_at",)
-        }),
-    )
-
 
 @admin.register(ReminderLog)
 class ReminderLogAdmin(admin.ModelAdmin):

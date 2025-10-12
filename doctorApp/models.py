@@ -83,22 +83,3 @@ class ReminderLog(models.Model):
 
     def __str__(self):
         return f"{self.recipient} - {self.reminder_type} ({self.status})"
-
-
-class FirebaseNotificationLog(models.Model):
-    doctor_id = models.CharField(max_length=100, blank=True, null=True)
-    patient_id = models.CharField(max_length=100, blank=True, null=True)
-    title = models.CharField(max_length=255)
-    body = models.TextField()
-    data = models.JSONField(blank=True, null=True)
-    status = models.CharField(max_length=20, default="pending")  # success / failed / pending
-    response = models.JSONField(blank=True, null=True)
-    created_at = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        verbose_name = "Firebase Notification Log"
-        verbose_name_plural = "Firebase Notification Logs"
-        ordering = ["-created_at"]
-
-    def __str__(self):
-        return f"DoctorID: {self.doctor_id or '-'} | PatientID: {self.patient_id or '-'} | {self.status}"
