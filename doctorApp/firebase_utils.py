@@ -69,7 +69,7 @@ def send_firebase_notification(fcm_token, title, body, data=None):
             doctor_id=(data.get("doctor_id") if data else None),
             patient_id=(data.get("patient_id") if data else None),
         )
-        return False
+        return e
 
 @shared_task
 def send_missed_vaccine_notifications():

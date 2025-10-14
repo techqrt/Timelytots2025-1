@@ -1,4 +1,4 @@
-from django.conf.global_settings import DEFAULT_FROM_EMAIL
+from timelytots.settings import DEFAULT_FROM_EMAIL
 from django.core.mail import send_mail
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
@@ -118,20 +118,24 @@ class ForgotPasswordSerializer(serializers.Serializer):
         user = User.objects.get(email=self.validated_data['email'])
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
-        reset_link = f"http://127.0.0.1:8000/reset-password/{uid}/{token}/"
+        reset_link = f"http://app.timelytots.com/reset-password/{uid}/{token}/"
+
+        print(f'reset link is {reset_link}')
 
         subject = "Reset Your Password"
-        message = f"Hi {user.full_name},\n\nClick the link below to reset your password:\n{reset_link}\n\nIf you did not request this, please ignore this email."
+        message = f"Hi Dr. {user.full_name},\n\nClick the link below to reset your password:\n{reset_link}\n\nIf you did not request this, please ignore this email."
         from_email = DEFAULT_FROM_EMAIL
         recipient_list = [user.email]
 
-        send_mail(subject, message, from_email, recipient_list, fail_silently=False)
+        send_email = send_mail(subject, message, from_email, recipient_list, fail_silently=False)
+
+        print(f'email sent is {send_email}')
 
         return {"message": "Password reset link sent to your email."}
 
 
 class ResetPasswordSerializer(serializers.Serializer):
-    uid = serializers.CharField()
+    email = serializers.EmailField()
     token = serializers.CharField()
     new_password = serializers.CharField(min_length=6)
     confirm_password = serializers.CharField(min_length=6)
@@ -141,10 +145,9 @@ class ResetPasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError("Passwords do not match.")
 
         try:
-            uid = force_str(urlsafe_base64_decode(data['uid']))
-            user = User.objects.get(pk=uid)
-        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            raise serializers.ValidationError("Invalid UID.")
+            user = User.objects.get(email=data['email'])
+        except User.DoesNotExist:
+            raise serializers.ValidationError("No account found with this email.")
 
         if not default_token_generator.check_token(user, data['token']):
             raise serializers.ValidationError("Token is invalid or expired.")

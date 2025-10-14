@@ -171,7 +171,8 @@ class PatientViews(APIView):
                 send_registered_whatsapp(
                     mobile_number=patient.mobile_number,
                     child_name=patient.child_name,
-                    doctor_name=doctor_name
+                    doctor_name=doctor_name,
+                    dob=patient.date_of_birth
                 )
     
                 return Response(serializer.data, status=status.HTTP_201_CREATED)

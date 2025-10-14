@@ -91,14 +91,14 @@ def send_whatsapp_reminder(mobile_number, child_name, doctor_name, due_date, vac
 
 
 
-def send_registered_whatsapp(mobile_number, child_name, doctor_name):
+def send_registered_whatsapp(mobile_number, child_name, doctor_name, dob):
     """Send welcome/intro message via MSG91 WhatsApp API."""
     url = "https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/"
     headers = {
         "Content-Type": "application/json",
         "authkey": settings.MSG91_AUTH_KEY,
     }
-
+    doctor_name = f"{doctor_name} ({dob})"
     if not str(mobile_number).startswith("91"):
         mobile_number = f"91{mobile_number}"
 
