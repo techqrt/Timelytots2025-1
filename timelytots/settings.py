@@ -114,10 +114,9 @@ AUTH_USER_MODEL = "authenticationApp.User"
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp-relay.brevo.com'
 EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = '98e328001@smtp-brevo.com'
-EMAIL_HOST_PASSWORD = 'PpA3RwFdV2y1fYhC'
-DEFAULT_FROM_EMAIL = 'timelytots@gmail.com'
+EMAIL_HOST_USER = '98e328002@smtp-brevo.com'
+EMAIL_HOST_PASSWORD = 'NJIyEQt7UOnfFdBP'
+DEFAULT_FROM_EMAIL = 'hello@timelytots.com'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
