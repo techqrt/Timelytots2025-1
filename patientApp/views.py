@@ -413,7 +413,8 @@ class UpcomingAppointmentsView(APIView):
                 user=request.user,
                 status="Upcoming",
                 is_completed=False,
-                due_date__range=[today, next_30_days]  
+                due_date__range=[today, next_30_days],
+                patient__is_active=True  # ✅ Only include active patients
             ).order_by("due_date")
 
             if upcoming_appointments.exists():
