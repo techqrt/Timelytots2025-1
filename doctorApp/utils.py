@@ -135,9 +135,14 @@ def send_registered_whatsapp(mobile_number, child_name, doctor_name, dob):
 @shared_task
 def send_vaccination_reminders():
     today = timezone.now().date()
-    upcoming_vaccinations = PatientVaccine.objects.filter(
-        due_date__gte=today, status="Upcoming"
-    ).select_related("patient", "vaccine_schedule", "user")
+    upcoming_vaccinations = (
+        PatientVaccine.objects.filter(
+            due_date__gte=today,
+            status="Upcoming",
+            patient__is_active=True  # 👈 Exclude inactive patients
+        )
+        .select_related("patient", "vaccine_schedule", "user")
+    )
 
     reminder_periods = [15, 7, 3, 0]
     print("Started sending vaccination reminders...")
