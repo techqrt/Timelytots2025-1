@@ -19,7 +19,7 @@ class PatientCountView(APIView):
     def get(self, request):
         try:
 
-            total_patients = Patient.objects.filter(user=request.user).count()
+            total_patients = Patient.objects.filter(user=request.user, is_active=True).count()
 
             return Response({"total_patients": total_patients}, status=status.HTTP_200_OK)
             
@@ -39,7 +39,8 @@ class UpcomingAppointmentsCountView(APIView):
                 user=request.user,
                 status="Upcoming",
                 is_completed=False,
-                due_date__range=[today, next_30_days]
+                due_date__range=[today, next_30_days],
+                patient__is_active=True
             ).count()
 
             month = request.query_params.get("month", None)
@@ -61,7 +62,8 @@ class UpcomingAppointmentsCountView(APIView):
                     user=request.user,
                     status="Upcoming",
                     is_completed=False,
-                    due_date__range=[start_date, end_date]
+                    due_date__range=[start_date, end_date],
+                    patient__is_active=True
                 ).count()
 
             return Response({
