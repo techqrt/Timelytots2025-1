@@ -98,38 +98,32 @@ class PatientSerializer(serializers.ModelSerializer):
     def validate(self, data):
         request = self.context.get("request")
         user = request.user
-        doctor = data.get("doctor")
 
-        existing = Patient.objects.filter(
-            child_name__iexact=data.get("child_name").strip(),
-            date_of_birth=data.get("date_of_birth"),
-            mobile_number=data.get("mobile_number"),
-        )
-
-        if user.account_type == "doctor":
-            existing = existing.filter(user=user)
-        elif user.account_type == "clinic" and doctor:
-            existing = existing.filter(doctor=doctor)
-        elif user.account_type == "clinic" and not doctor:
-            raise serializers.ValidationError("Clinic users must assign a clinic doctor.")
-
-        if existing.exists():
-            raise serializers.ValidationError(
-                "Duplicate entry: A patient with the same name, date of birth, and mobile number already exists for this doctor/clinic."
-            )
-
-        if doctor:
-            if not doctor.is_clinic_doctor:
+        if data.get("doctor"):
+            if not data["doctor"].is_active:
                 raise serializers.ValidationError("This doctor is not active and cannot add patients.")
-            if user.account_type == "clinic" and doctor.clinic != user.clinic_profile:
-                raise serializers.ValidationError("This doctor does not belong to your clinic.")
-        elif user.account_type == "doctor":
+        elif user and user.account_type == "doctor":
             pass
-        elif user.account_type == "clinic":
-            raise serializers.ValidationError("Clinic users must assign a clinic doctor.")
         else:
             raise serializers.ValidationError(
                 "Patient must be linked to either an individual doctor or a clinic doctor."
+            )
+
+        child_name = data.get("child_name")
+        date_of_birth = data.get("date_of_birth")
+        mobile_number = data.get("mobile_number")
+
+        existing_patient = Patient.objects.filter(
+            user=user,
+            child_name__iexact=child_name.strip(),
+            date_of_birth=date_of_birth,
+            mobile_number=mobile_number,
+            is_active=True,
+        ).first()
+
+        if existing_patient:
+            raise serializers.ValidationError(
+                "patient already exists!."
             )
 
         return data
