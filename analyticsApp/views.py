@@ -45,7 +45,9 @@ class UpcomingAppointmentsCountView(APIView):
 
             month = request.query_params.get("month", None)
             year = request.query_params.get("year", None)
+
             custom_month_count = None
+            missed_vaccines = None
 
             if month and month.lower() != "all":
                 month = int(month)
@@ -66,12 +68,30 @@ class UpcomingAppointmentsCountView(APIView):
                     patient__is_active=True
                 ).count()
 
+                missed_vaccines = PatientVaccine.objects.filter(
+                    user=request.user,
+                    status="Upcoming",
+                    is_completed=False,
+                    due_date__lt=today,
+                    due_date__range=[start_date, end_date],
+                    patient__is_active=True
+                ).count()
+            else:
+                missed_vaccines = PatientVaccine.objects.filter(
+                    user=request.user,
+                    status="Upcoming",
+                    is_completed=False,
+                    due_date__lt=today,
+                    patient__is_active=True
+                ).count()
+
             return Response({
                 "user": request.user.full_name,
                 "month": month if month else "All",
                 "year": year if year else "All",
                 "next_30_days_count": next_30_days_count,
-                "custom_month_count": custom_month_count
+                "custom_month_count": custom_month_count,
+                "missed_vaccines": missed_vaccines
             }, status=status.HTTP_200_OK)
 
         except Exception as e:

@@ -98,16 +98,40 @@ class PatientSerializer(serializers.ModelSerializer):
     def validate(self, data):
         request = self.context.get("request")
         user = request.user
+        doctor = data.get("doctor")
 
-        if data.get("doctor"):
-            if not data["doctor"].is_active:
+        existing = Patient.objects.filter(
+            child_name__iexact=data.get("child_name").strip(),
+            date_of_birth=data.get("date_of_birth"),
+            mobile_number=data.get("mobile_number"),
+        )
+
+        if user.account_type == "doctor":
+            existing = existing.filter(user=user)
+        elif user.account_type == "clinic" and doctor:
+            existing = existing.filter(doctor=doctor)
+        elif user.account_type == "clinic" and not doctor:
+            raise serializers.ValidationError("Clinic users must assign a clinic doctor.")
+
+        if existing.exists():
+            raise serializers.ValidationError(
+                "Duplicate entry: A patient with the same name, date of birth, and mobile number already exists for this doctor/clinic."
+            )
+
+        if doctor:
+            if not doctor.is_clinic_doctor:
                 raise serializers.ValidationError("This doctor is not active and cannot add patients.")
-        elif user and user.account_type == "doctor":
+            if user.account_type == "clinic" and doctor.clinic != user.clinic_profile:
+                raise serializers.ValidationError("This doctor does not belong to your clinic.")
+        elif user.account_type == "doctor":
             pass
+        elif user.account_type == "clinic":
+            raise serializers.ValidationError("Clinic users must assign a clinic doctor.")
         else:
             raise serializers.ValidationError(
                 "Patient must be linked to either an individual doctor or a clinic doctor."
             )
+
         return data
 
     def create(self, validated_data):
