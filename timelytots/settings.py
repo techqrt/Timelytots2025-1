@@ -164,7 +164,7 @@ CELERY_BEAT_SCHEDULE = {
 
     # 🔔 New: missed vaccine Firebase notifications
     'send-missed-vaccine-notifications-every-day': {
-        'task': 'dashboardApp.utils.send_missed_vaccine_notifications',
+        'task': 'doctorApp.firebase_utils.send_missed_vaccine_notifications',
         'schedule': crontab(hour=11, minute=0),  # 11:00 AM IST
     },
 }
