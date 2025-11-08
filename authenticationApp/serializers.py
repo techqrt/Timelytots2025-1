@@ -190,8 +190,8 @@ class ResetPasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError("No account found with this email.")
 
         try:
-            reset_code = PasswordResetCode.objects.get(user=user, code=data["code"])
-        except PasswordResetCode.DoesNotExist:
+            reset_code = PasswordResetCode.objects.get(user=user, code=data["token"])
+        except PasswordResetCode.DoesNotExist:  
             raise serializers.ValidationError("Invalid or expired reset code.")
 
         self.user = user
