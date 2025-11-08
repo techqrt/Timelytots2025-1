@@ -1,0 +1,8 @@
+Welcome to Timely Tots, {{ full_name }}!
+
+Your account ({{ account_type }}) has been created successfully.
+Dashboard: {{ dashboard_link }}
+Help Center: {{ help_link }}
+Download App: {{ download_link }}
+
+© {{ current_year }} Timely Tots

@@ -1,0 +1,104 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <style>
+      /* Email clients require inline styles for max compatibility — critical styles are repeated inline below */
+      @media only screen and (max-width:600px) {
+        .container { width: 100% !important; padding: 16px !important; }
+        .hero { font-size: 20px !important; }
+        .two-col { display:block !important; width:100% !important; }
+        .cta { width: 100% !important; }
+      }
+    </style>
+  </head>
+
+  <body style="margin:0; padding:0; background:#f4f7fb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;">
+
+    <!-- outer container -->
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f7fb; padding:24px 0;">
+      <tr>
+        <td align="center">
+
+          <!-- inner container -->
+          <table role="presentation" class="container" width="600" cellspacing="0" cellpadding="0" style="background:#ffffff; border-radius:8px; overflow:hidden; width:600px;">
+
+            <!-- hero -->
+            <tr>
+              <td style="padding:28px 28px 8px 28px; text-align:left;">
+                <h1 class="hero" style="margin:0 0 8px 0; font-size:26px; line-height:1.2; color:#0a2340;">
+                  {% if account_type == 'doctor' %}
+                    Welcome {{ full_name }} 👋
+                  {% else %}
+                    Welcome {{ clinic_name }} Team 👋
+                  {% endif %}
+                </h1>
+                <p style="margin:0; color:#475569; font-size:15px;">
+                  Thanks for joining Timely Tots. We’ll help you manage vaccination schedules, send automated reminders, and keep parents engaged — so your practice can focus on care.
+                </p>
+              </td>
+            </tr>
+
+            <!-- CTA -->
+            <tr>
+              <td style="padding:18px 28px;">
+                <table role="presentation" width="100%">
+                  <tr>
+                    <td align="right" style="font-size:13px; color:#94a3b8;">
+                      <span>Need help?</span>
+                      <a href="mailto:support@timelytots.com" style="color:#0b66d0; text-decoration:none; margin-left:8px;">support@timelytots.com</a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- features / 2-col -->
+            <tr>
+              <td style="padding:0 28px 22px 28px;">
+                <table role="presentation" width="100%">
+                  <tr>
+                    <td class="two-col" style="width:50%; vertical-align:top; padding-right:12px;">
+                      <h3 style="margin:0 0 8px 0; font-size:16px; color:#0a2340;">Instant Schedules</h3>
+                      <p style="margin:0; color:#64748b; font-size:14px;">Create IAP-compliant schedules in seconds — add a patient and we do the rest.</p>
+                    </td>
+                    <td class="two-col" style="width:50%; vertical-align:top; padding-left:12px;">
+                      <h3 style="margin:0 0 8px 0; font-size:16px; color:#0a2340;">Automated Reminders</h3>
+                      <p style="margin:0; color:#64748b; font-size:14px;">Parents get timely SMS and app reminders so appointments aren’t missed.</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- optional clinic doctors list (only for clinics) -->
+            {% if account_type == 'clinic' and clinic_doctors %}
+            <tr>
+              <td style="padding:0 28px 18px 28px;">
+                <h4 style="margin:8px 0 6px 0; font-size:15px; color:#0a2340;">Doctors added to your clinic</h4>
+                <ul style="margin:0; padding-left:18px; color:#64748b;">
+                  {% for doc in clinic_doctors %}
+                    <li>{{ doc.name }} — {{ doc.speciality }}</li>
+                  {% endfor %}
+                </ul>
+              </td>
+            </tr>
+            {% endif %}
+
+            <!-- footer -->
+            <tr>
+              <td style="padding:20px 28px; background:#f1f5f9; font-size:13px; color:#64748b;">
+                <p style="margin:6px 0 0 0;">© {{ current_year }} Timely Tots. All rights reserved.</p>
+              </td>
+            </tr>
+
+          </table>
+          <!-- end inner container -->
+
+        </td>
+      </tr>
+    </table>
+
+  </body>
+</html>
