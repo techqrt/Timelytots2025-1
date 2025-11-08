@@ -8,7 +8,11 @@ from django.contrib.auth.tokens import default_token_generator
 
 from .models import User, ClinicDoctor
 from django.utils.encoding import force_bytes
-
+import random, string
+from django.template.loader import render_to_string
+from django.core.mail import EmailMultiAlternatives
+from timelytots import settings
+from .models import PasswordResetCode
 
 class ClinicDoctorSerializer(serializers.ModelSerializer):
     class Meta:
@@ -46,9 +50,40 @@ class UserSignupSerializer(serializers.ModelSerializer):
         if user.account_type == "clinic":
             for doc in clinic_doctors_data:
                 ClinicDoctor.objects.create(clinic=user, **doc)
+        
+        self.send_welcome_email(user, clinic_doctors_data)
 
         return user
 
+    # ---------------- Send Welcome Email ----------------
+    def send_welcome_email(self, user, clinic_doctors):
+        context = {
+            "account_type": user.account_type,
+            "full_name": user.full_name,
+            "clinic_name": user.full_name if user.account_type == "clinic" else None,
+            "clinic_doctors": clinic_doctors,
+            "dashboard_link": "https://timelytots.com/dashboard",
+            "help_link": "https://timelytots.com/help",
+            "download_link": "https://play.google.com/store/apps/details?id=com.timelytots",
+            "current_year": 2025,
+        }
+
+        if user.account_type == "doctor":
+            subject = f"Welcome to Timely Tots, Dr. {user.full_name}!"
+        else:
+            subject = f"Welcome to Timely Tots — {user.full_name} is ready!"
+
+        html_body = render_to_string("emails/welcome_timelytots.html", context)
+        text_body = render_to_string("emails/welcome_timelytots.txt", context)
+
+        msg = EmailMultiAlternatives(
+            subject=subject,
+            body=text_body,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[user.email],
+        )
+        msg.attach_alternative(html_body, "text/html")
+        msg.send(fail_silently=False)
 
 class UserLoginSerializers(serializers.Serializer):
     email = serializers.EmailField()
@@ -114,51 +149,62 @@ class ForgotPasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError("No account found with this email.")
         return value
 
+    def generate_reset_code(self, length=6):
+        return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
+
     def save(self):
-        user = User.objects.get(email=self.validated_data['email'])
-        uid = urlsafe_base64_encode(force_bytes(user.pk))
-        token = default_token_generator.make_token(user)
-        reset_link = f"http://app.timelytots.com/reset-password/{uid}/{token}/"
+        user = User.objects.get(email=self.validated_data["email"])
+        reset_code = self.generate_reset_code()
 
-        print(f'reset link is {reset_link}')
+        PasswordResetCode.objects.create(user=user, code=reset_code)
 
-        subject = "Reset Your Password"
-        message = f"Hi Dr. {user.full_name},\n\nClick the link below to reset your password:\n{reset_link}\n\nIf you did not request this, please ignore this email."
-        from_email = DEFAULT_FROM_EMAIL
-        recipient_list = [user.email]
-
-        send_email = send_mail(subject, message, from_email, recipient_list, fail_silently=False)
-
-        print(f'email sent is {send_email}')
-
-        return {"message": "Password reset link sent to your email."}
+        subject = "Reset Your Password - Timely Tots"
+        message = f"""
+                Hi {user.full_name},
+                
+                You requested to reset your password for your Timely Tots account.
+                
+                Your password reset code is: {reset_code}
+                
+                Please enter this code in the app or website to set your new password.
+                
+                If you did not request this, please ignore this email.
+                """
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=False)
+        return {"message": "Password reset code sent to your email."}
 
 
 class ResetPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()
-    token = serializers.CharField()
+    token = serializers.CharField(max_length=10)
     new_password = serializers.CharField(min_length=6)
     confirm_password = serializers.CharField(min_length=6)
 
     def validate(self, data):
-        if data['new_password'] != data['confirm_password']:
+        if data["new_password"] != data["confirm_password"]:
             raise serializers.ValidationError("Passwords do not match.")
 
         try:
-            user = User.objects.get(email=data['email'])
+            user = User.objects.get(email=data["email"])
         except User.DoesNotExist:
             raise serializers.ValidationError("No account found with this email.")
 
-        if not default_token_generator.check_token(user, data['token']):
-            raise serializers.ValidationError("Token is invalid or expired.")
+        try:
+            reset_code = PasswordResetCode.objects.get(user=user, code=data["code"])
+        except PasswordResetCode.DoesNotExist:
+            raise serializers.ValidationError("Invalid or expired reset code.")
 
         self.user = user
+        self.reset_code = reset_code
         return data
 
     def save(self):
-        self.user.set_password(self.validated_data['new_password'])
+        self.user.set_password(self.validated_data["new_password"])
         self.user.save()
+
+        self.reset_code.delete()
         return self.user
+
 
 
 class UserSerializers(serializers.ModelSerializer):

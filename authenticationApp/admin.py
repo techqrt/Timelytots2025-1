@@ -2,12 +2,13 @@ from django.contrib import admin
 from django.contrib.auth.models import Group
 from rest_framework.authtoken.models import Token
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
-from authenticationApp.models import User, ClinicDoctor
+from authenticationApp.models import User, ClinicDoctor, PasswordResetCode
 
 # Register your models here.
 
 admin.site.register(User)
 admin.site.register(ClinicDoctor)
+admin.site.register(PasswordResetCode)
 
 for model in [Group, Token, BlacklistedToken, OutstandingToken]:
     try:

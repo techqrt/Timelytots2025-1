@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
-
+from timelytots import settings
 
 # ---------------- Custom User Manager ----------------
 class UserManager(BaseUserManager):
@@ -67,3 +67,11 @@ class ClinicDoctor(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.clinic.full_name})"
+
+class PasswordResetCode(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="reset_codes")
+    code = models.CharField(max_length=10)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.email} - {self.code}"
