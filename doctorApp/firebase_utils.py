@@ -80,9 +80,12 @@ def send_missed_vaccine_notifications():
     """
     today = timezone.now().date()
     missed_vaccines = (
-        PatientVaccine.objects.filter(due_date__lt=today)
-        .exclude(status__in=["Completed", "Missed"], is_completed=False)
-        .select_related("patient", "user", "vaccine_schedule")
+    PatientVaccine.objects.filter(
+            due_date__lt=today,
+            is_completed=False
+        ).exclude(
+            status="Completed"
+        ).select_related("patient", "user", "vaccine_schedule")
     )
 
     if not missed_vaccines.exists():
