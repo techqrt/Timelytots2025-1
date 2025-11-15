@@ -81,7 +81,7 @@ def send_missed_vaccine_notifications():
     today = timezone.now().date()
     missed_vaccines = (
         PatientVaccine.objects.filter(due_date__lt=today)
-        .exclude(status__in=["Completed", "Missed"])
+        .exclude(status__in=["Completed", "Missed"], is_completed=True)
         .select_related("patient", "user", "vaccine_schedule")
     )
 
