@@ -285,7 +285,7 @@ class PatientVaccineViews(APIView):
 
     def get(self, request):
         try:
-            patient_vaccines = PatientVaccine.objects.filter(user=request.user).order_by('-id')
+            patient_vaccines = PatientVaccine.objects.filter(user=request.user).order_by('vaccine_schedule__age_order')
 
             if patient_vaccines:
                 serializers = PatientVaccineSerializer(patient_vaccines, many=True)
