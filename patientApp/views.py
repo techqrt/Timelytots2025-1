@@ -58,7 +58,7 @@ class PatientViews(APIView):
                             pv.is_completed = False
                         pv.save()
 
-                vaccines = PatientVaccine.objects.filter(patient=patient, user=request.user)
+                vaccines = PatientVaccine.objects.filter(patient=patient, user=request.user).order_by("vaccine_schedule__age_order")
 
                 response_data.append({
                     "patient": PatientSerializer(patient).data,
