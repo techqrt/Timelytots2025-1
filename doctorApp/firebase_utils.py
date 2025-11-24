@@ -5,7 +5,7 @@ from patientApp.models import PatientVaccine
 from authenticationApp.models import User
 
 import firebase_admin
-from firebase_admin import credentials, messaging
+from firebase_admin import credentials, messaging, firestore
 from django.conf import settings
 import logging
 from timelytots import settings as setting
@@ -14,11 +14,68 @@ from doctorApp.models import FirebaseNotificationLog
 
 logger = logging.getLogger(__name__)
 
+
 # Initialize Firebase once
 if not firebase_admin._apps:
     cred = credentials.Certificate(setting.FIREBASE_CREDENTIALS_PATH)
     firebase_admin.initialize_app(cred)
 
+# Firestore client (reuse same app)
+db = firestore.client()
+
+def save_notification_to_firestore(
+    doctor_id,
+    title,
+    body,
+    data=None,
+    status="success",
+    error=None,
+):
+    """
+    Persist notification in Firestore at:
+        user/{doctor_id}/notifications/{notification_id}
+
+    This can be read directly from Flutter.
+    """
+    if not doctor_id:
+        logger.warning("save_notification_to_firestore called without doctor_id.")
+        return
+
+    try:
+        doc_ref = (
+            db.collection("user")
+            .document(str(doctor_id))
+            .collection("notifications")
+            .document()  # auto ID
+        )
+
+        payload = {
+            "title": title,
+            "body": body,
+            "data": data or {},
+            "status": status,           # 'success' or 'failed'
+            "error": error,             # error message string or None
+            "doctorId": str(doctor_id),
+            "patientId": str(data.get("patient_id")) if data and data.get("patient_id") else None,
+            "isRead": False,            # Flutter can toggle this when opened
+            "createdAt": firestore.SERVER_TIMESTAMP,
+        }
+
+        # Remove keys with value None to keep Firestore clean
+        payload = {k: v for k, v in payload.items() if v is not None}
+
+        doc_ref.set(payload)
+        logger.info(
+            "📄 Notification stored in Firestore for doctor_id=%s, doc_id=%s",
+            doctor_id,
+            doc_ref.id,
+        )
+    except Exception as e:
+        logger.exception(
+            "Error saving notification to Firestore for doctor_id=%s: %s",
+            doctor_id,
+            e,
+        )
 
 def send_firebase_notification(fcm_token, title, body, data=None):
     """
@@ -34,6 +91,17 @@ def send_firebase_notification(fcm_token, title, body, data=None):
             response={"error": "Missing FCM token"},
             doctor_id=(data.get("doctor_id") if data else None),
             patient_id=(data.get("patient_id") if data else None),
+        )
+        
+        error_msg = "Missing FCM token"
+        # Save in Firestore as failed notification
+        save_notification_to_firestore(
+            doctor_id=(data.get("doctor_id") if data else None),
+            title=title,
+            body=body,
+            data=data,
+            status="failed",
+            error=error_msg,
         )
         return False
 
@@ -56,7 +124,15 @@ def send_firebase_notification(fcm_token, title, body, data=None):
             doctor_id=(data.get("doctor_id") if data else None),
             patient_id=(data.get("patient_id") if data else None),
         )
-
+        # Firestore: success notification
+        save_notification_to_firestore(
+            doctor_id=(data.get("doctor_id") if data else None),
+            title=title,
+            body=body,
+            data=data,
+            status="success",
+            error=None,
+        )
         return True
 
     except Exception as e:
@@ -68,6 +144,15 @@ def send_firebase_notification(fcm_token, title, body, data=None):
             response={"error": str(e)},
             doctor_id=(data.get("doctor_id") if data else None),
             patient_id=(data.get("patient_id") if data else None),
+        )
+
+        save_notification_to_firestore(
+            doctor_id=(data.get("doctor_id") if data else None),
+            title=title,
+            body=body,
+            data=data,
+            status="failed",
+            error=str(e),
         )
         return e
 
