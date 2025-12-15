@@ -125,7 +125,26 @@ def send_registered_whatsapp(mobile_number, child_name, doctor_name, dob):
         },
     }
 
-    response = requests.post(url, headers=headers, json=payload)
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        response_data = response.json()
+
+        status_value = "success" if response.status_code in [200, 201] else "failed"
+
+    except Exception as e:
+        response_data = {"error": str(e)}
+        status_value = "failed"
+
+    # ✅ Save Reminder Log
+    ReminderLog.objects.create(
+        reminder_type="registration_whatsapp",
+        recipient=mobile_number,
+        child_name=child_name,
+        doctor_name=doctor_name,
+        status=status_value,
+        response=response_data,
+    )
+
     return _handle_response(response)
 
 
