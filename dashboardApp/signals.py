@@ -9,6 +9,7 @@ from doctorApp.models import ReminderLog
 from dashboardApp.models import BillingManagement
 from authenticationApp.models import User, ClinicDoctor
 from dashboardApp.models import Analytics
+from dashboardApp.utils import get_previous_month_range
 
 GST_RATE = Decimal('0.18')
 
@@ -55,6 +56,7 @@ def update_total_revenue(sender, **kwargs):
 
 @receiver(post_save, sender=apps.get_model("doctorApp", "ReminderLog"))
 def update_billing_from_reminder(sender, instance, created, **kwargs):
+    start_date, end_date = get_previous_month_range()
     if not created or instance.status != "success":
         return
 
@@ -74,13 +76,14 @@ def update_billing_from_reminder(sender, instance, created, **kwargs):
     ]:
         return
 
-    # Ensure required pricing fields exist for the selected method
-    if doctor.billing_method in ["Per Message", "Per Message + Monthly Subscription"] and not doctor.per_message_charges:
-        return
-    if doctor.billing_method in ["Monthly Subscription", "Per Message + Monthly Subscription"] and not doctor.monthly_subscription_fees:
-        return
+    # ✅ Count previous-month messages
+    msg_count = ReminderLog.objects.filter(
+        doctor_id=doctor_id,
+        status="success",
+        created_at__date__gte=start_date,
+        created_at__date__lte=end_date
+    ).count()
 
-    # Get or create billing entry for this doctor & current billing state
     billing, _ = BillingManagement.objects.get_or_create(
         user=doctor,
         billing_method=doctor.billing_method,
@@ -94,29 +97,20 @@ def update_billing_from_reminder(sender, instance, created, **kwargs):
         },
     )
 
-    # Bump message count for this successful reminder
-    # ✅ Recalculate total messages from logs (the correct count)
-    msg_count = ReminderLog.objects.filter(
-        doctor_id=doctor_id,
-        status="success"
-    ).count()
     billing.total_message_sent = msg_count
 
-    # Safely coerce to Decimal
     per_msg_rate = Decimal(str(doctor.per_message_charges or 0))
     sub_fee = Decimal(str(doctor.monthly_subscription_fees or 0))
 
-    # --- Correct subtotal logic ---
     if doctor.billing_method == "Per Message":
-        subtotal = per_msg_rate * Decimal(billing.total_message_sent)
+        subtotal = per_msg_rate * msg_count
 
     elif doctor.billing_method == "Monthly Subscription":
         subtotal = sub_fee
 
-    else:  # "Per Message + Monthly Subscription"
-        subtotal = sub_fee + (per_msg_rate * Decimal(billing.total_message_sent))
+    else:
+        subtotal = sub_fee + (per_msg_rate * msg_count)
 
-    # Compute GST and total
     gst = subtotal * GST_RATE
     total = subtotal + gst
 

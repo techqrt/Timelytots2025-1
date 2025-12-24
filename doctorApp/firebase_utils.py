@@ -10,7 +10,7 @@ from django.conf import settings
 import logging
 from timelytots import settings as setting
 from doctorApp.models import FirebaseNotificationLog
-
+from django.db import transaction
 
 logger = logging.getLogger(__name__)
 
