@@ -167,7 +167,7 @@ def send_missed_vaccine_notifications():
     today = timezone.now().date()
 
     with transaction.atomic():
-        missed_vaccines_qs = (
+        missed_vaccines_qs = list(
             PatientVaccine.objects
             .select_for_update()
             .filter(
