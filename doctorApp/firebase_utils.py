@@ -166,11 +166,18 @@ def send_missed_vaccine_notifications():
     """
     today = timezone.now().date()
 
-    missed_vaccines_qs = PatientVaccine.objects.filter(
-        due_date__lt=today,
-        is_completed=False,
-        notification_sent=False,   # NEW: only those not yet notified
-    ).exclude(status="Completed").select_related("patient", "user", "vaccine_schedule")
+    with transaction.atomic():
+        missed_vaccines_qs = (
+            PatientVaccine.objects
+            .select_for_update()
+            .filter(
+                due_date__lt=today,
+                is_completed=False,
+                notification_sent=False,
+            )
+            .exclude(status="Completed")
+            .select_related("patient", "user", "vaccine_schedule")
+        )
 
     if not missed_vaccines_qs.exists():
         logger.info("No missed vaccines found today (or all already notified).")
