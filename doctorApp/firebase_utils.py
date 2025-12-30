@@ -10,8 +10,7 @@ from django.conf import settings
 import logging
 from timelytots import settings as setting
 from doctorApp.models import FirebaseNotificationLog
-from django.db import transaction, IntegrityError
-import hashlib
+from django.db import transaction
 
 logger = logging.getLogger(__name__)
 
@@ -221,62 +220,54 @@ def send_missed_vaccine_notifications():
                 f"You can reach {patient_name} at {mobile_number}."
             )
 
-            dedupe_key = hashlib.sha256(
-                f"missed_vaccine:{doctor_id}:{patient_id}:{today}".encode()
-            ).hexdigest()
-
-            # 🚫 HARD STOP IF DUPLICATE
+            # Concurrency protection: re-lock involved PatientVaccine rows and confirm they're still not notified
+            pv_ids = [v.id for v in pv_list]
             try:
                 with transaction.atomic():
-                    FirebaseNotificationLog.objects.create(
-                        dedupe_key=dedupe_key,
-                        title=title,
-                        body=body,
+                    locked_qs = (
+                        PatientVaccine.objects.select_for_update()
+                        .filter(id__in=pv_ids, notification_sent=False)
+                    )
+
+                    # If nothing left to notify (another process already marked them), skip
+                    if not locked_qs.exists():
+                        logger.info("Vaccines %s already notified by another worker; skipping.", pv_ids)
+                        continue
+
+                    # Send notification
+                    send_result = send_firebase_notification(
+                        doctor.fcm_token,
+                        title,
+                        body,
                         data={
-                            "doctor_id": str(doctor_id),
-                            "patient_id": str(patient_id),
+                            "doctor_id": str(doctor.id),
+                            "patient_id": str(patient.id),
                             "vaccine_names": vaccine_names,
                         },
-                        status="pending",
-                        doctor_id=doctor_id,
-                        patient_id=patient_id,
                     )
-            except IntegrityError:
-                logger.warning(
-                    "Duplicate blocked by dedupe_key doctor=%s patient=%s",
-                    doctor_id, patient_id
-                )
-                continue
 
-            # ✅ SEND (ONLY ONCE, EVER)
-            success = send_firebase_notification(
-                doctor.fcm_token,
-                title,
-                body,
-                data={
-                    "doctor_id": str(doctor_id),
-                    "patient_id": str(patient_id),
-                    "vaccine_names": vaccine_names,
-                },
-            )
+                    # Determine success: your send_firebase_notification returns True on success,
+                    # and an Exception object or False on failure based on your current code.
+                    if send_result is True:
+                        # mark all locked vaccines as notified
+                        locked_qs.update(notification_sent=True, notification_sent_at=timezone.now())
+                        logger.info(
+                            "📨 Notification sent to %s for patient %s and vaccines [%s]; marked notified.",
+                            doctor.full_name, patient_name, vaccine_names
+                        )
+                    else:
+                        # send failed; do not mark as notified so it can retry later
+                        logger.error(
+                            "Failed to send notification for doctor=%s patient=%s. send_result=%s",
+                            doctor_id, patient_id, str(send_result)
+                        )
+                        # optionally, you could save a retry counter or other logic here
 
-            if success:
-                PatientVaccine.objects.filter(
-                    id__in=[v.id for v in pv_list]
-                ).update(
-                    notification_sent=True,
-                    notification_sent_at=timezone.now(),
+            except Exception as e:
+                logger.exception(
+                    "Exception while sending/marking notifications for doctor=%s patient=%s: %s",
+                    doctor_id, patient_id, e
                 )
-
-                save_notification_to_firestore(
-                    doctor_id=doctor_id,
-                    title=title,
-                    body=body,
-                    data={
-                        "doctor_id": str(doctor_id),
-                        "patient_id": str(patient_id),
-                        "vaccine_names": vaccine_names,
-                    },
-                )
+                # Without marking notification_sent, it will be retried later
 
     return "Missed vaccine notifications processed."
