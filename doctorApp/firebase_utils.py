@@ -233,10 +233,11 @@ def send_missed_vaccine_notifications():
                         )
                     )
 
-                    if claimed == 0:
+                    if claimed != len(pv_ids):
                         logger.info(
-                            "Vaccines %s already claimed by another worker. Skipping.",
+                            "Partial/no claim for pv_ids=%s (claimed=%s). Skipping notification.",
                             pv_ids,
+                            claimed,
                         )
                         continue
 
