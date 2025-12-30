@@ -166,18 +166,11 @@ def send_missed_vaccine_notifications():
     """
     today = timezone.now().date()
 
-    with transaction.atomic():
-        missed_vaccines_qs = list(
-            PatientVaccine.objects
-            .select_for_update()
-            .filter(
-                due_date__lt=today,
-                is_completed=False,
-                notification_sent=False,
-            )
-            .exclude(status="Completed")
-            .select_related("patient", "user", "vaccine_schedule")
-        )
+    missed_vaccines_qs = PatientVaccine.objects.filter(
+        due_date__lt=today,
+        is_completed=False,
+        notification_sent=False,   # NEW: only those not yet notified
+    ).exclude(status="Completed").select_related("patient", "user", "vaccine_schedule")
 
     if not missed_vaccines_qs.exists():
         logger.info("No missed vaccines found today (or all already notified).")
@@ -231,14 +224,20 @@ def send_missed_vaccine_notifications():
             pv_ids = [v.id for v in pv_list]
             try:
                 with transaction.atomic():
-                    locked_qs = (
-                        PatientVaccine.objects.select_for_update()
-                        .filter(id__in=pv_ids, notification_sent=False)
+                    claimed = (
+                    PatientVaccine.objects
+                    .filter(id__in=pv_ids, notification_sent=False)
+                    .update(
+                        notification_sent=True,
+                        notification_sent_at=timezone.now(),
+                        )
                     )
 
-                    # If nothing left to notify (another process already marked them), skip
-                    if not locked_qs.exists():
-                        logger.info("Vaccines %s already notified by another worker; skipping.", pv_ids)
+                    if claimed == 0:
+                        logger.info(
+                            "Vaccines %s already claimed by another worker. Skipping.",
+                            pv_ids,
+                        )
                         continue
 
                     # Send notification
@@ -255,12 +254,16 @@ def send_missed_vaccine_notifications():
 
                     # Determine success: your send_firebase_notification returns True on success,
                     # and an Exception object or False on failure based on your current code.
-                    if send_result is True:
-                        # mark all locked vaccines as notified
-                        locked_qs.update(notification_sent=True, notification_sent_at=timezone.now())
-                        logger.info(
-                            "📨 Notification sent to %s for patient %s and vaccines [%s]; marked notified.",
-                            doctor.full_name, patient_name, vaccine_names
+                    if send_result is not True:
+                        PatientVaccine.objects.filter(id__in=pv_ids).update(
+                            notification_sent=False,
+                            notification_sent_at=None,
+                        )
+
+                        logger.error(
+                            "Notification failed for doctor=%s patient=%s. Rolled back claim.",
+                            doctor_id,
+                            patient_id,
                         )
                     else:
                         # send failed; do not mark as notified so it can retry later
