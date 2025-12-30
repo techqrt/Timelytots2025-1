@@ -88,6 +88,7 @@ class ReminderLog(models.Model):
 
 
 class FirebaseNotificationLog(models.Model):
+    dedupe_key = models.CharField(max_length=255, unique=True, null=True, blank=True)
     doctor_id = models.CharField(max_length=100, blank=True, null=True)
     patient_id = models.CharField(max_length=100, blank=True, null=True)
     title = models.CharField(max_length=255)
