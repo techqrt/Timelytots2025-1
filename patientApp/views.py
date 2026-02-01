@@ -14,8 +14,38 @@ from rest_framework.response import Response
 from datetime import timedelta
 from math import ceil
 from django.db.models import Q
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.utils.urls import replace_query_param, remove_query_param
 
 # Create your views here.
+
+
+class PatientPagination(PageNumberPagination):
+    page_size = 10
+    page_query_param = 'page_num'
+    page_size_query_param = 'limit'
+    max_page_size = 100
+
+    def get_previous_link(self):
+        if not self.page.has_previous():
+            return None
+
+        url = self.request.build_absolute_uri()
+        page_number = self.page.previous_page_number()
+
+        if page_number == 1:
+            return replace_query_param(url, self.page_query_param, 1)
+
+        return replace_query_param(url, self.page_query_param, page_number)
+
+    def get_next_link(self):
+        if not self.page.has_next():
+            return None
+
+        url = self.request.build_absolute_uri()
+        page_number = self.page.next_page_number()
+        return replace_query_param(url, self.page_query_param, page_number)
+
 
 class PatientViews(APIView):
     permission_classes = [IsAuthenticated]
@@ -31,14 +61,17 @@ class PatientViews(APIView):
                     status=status.HTTP_204_NO_CONTENT
                 )
 
+            paginator = PatientPagination()
+            paginated_patients = paginator.paginate_queryset(patients, request)
+
             response_data = []
 
-            for patient in patients:
+            for patient in paginated_patients:
                 response_data.append({
                     "patient": PatientSerializer(patient).data
                 })
 
-            return Response(response_data, status=status.HTTP_200_OK)
+            return paginator.get_paginated_response(response_data)
 
         except Exception as e:
             return Response(
