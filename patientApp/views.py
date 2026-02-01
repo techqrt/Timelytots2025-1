@@ -12,6 +12,8 @@ from patientApp.serializers import PatientSerializer, PatientVaccineSerializer, 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from datetime import timedelta
+from math import ceil
+from django.db.models import Q
 
 # Create your views here.
 
@@ -22,55 +24,27 @@ class PatientViews(APIView):
     def get(self, request):
         try:
             patients = Patient.objects.filter(user=request.user).order_by('-id')
+
             if not patients.exists():
-                return Response({'message': 'no patients found.'}, status=status.HTTP_204_NO_CONTENT)
+                return Response(
+                    {'message': 'no patients found.'},
+                    status=status.HTTP_204_NO_CONTENT
+                )
 
             response_data = []
-            today = date.today()
 
             for patient in patients:
-                schedules = VaccineSchedule.objects.filter(models.Q(patient=patient) | models.Q(user__is_staff=True))
-
-                for schedule in schedules:
-                    due_date = schedule.due_date
-
-                    if due_date is None:
-                        continue
-
-                    pv, created = PatientVaccine.objects.get_or_create(
-                        patient=patient,
-                        vaccine_schedule=schedule,
-                        user=request.user,
-                        defaults={"due_date": due_date}
-                    )
-
-                    if created or pv.status != "Completed":
-                        if today > due_date:
-                            pv.status = "Completed"
-                            pv.is_completed = True
-                            pv.completed_on = today
-                            pv.completed_at = "Auto-generated"
-                        elif today == due_date:
-                            pv.status = "Pending"
-                            pv.is_completed = False
-                        else:
-                            pv.status = "Upcoming"
-                            pv.is_completed = False
-                        pv.save()
-
-                vaccines = PatientVaccine.objects.filter(patient=patient, user=request.user).order_by("vaccine_schedule__age_order")
-
                 response_data.append({
-                    "patient": PatientSerializer(patient).data,
-                    "Completed": PatientVaccineSerializer(vaccines.filter(status="Completed"), many=True).data,
-                    "Upcoming": PatientVaccineSerializer(vaccines.filter(status="Upcoming"), many=True).data,
-                    "Pending": PatientVaccineSerializer(vaccines.filter(status="Pending"), many=True).data,
+                    "patient": PatientSerializer(patient).data
                 })
 
             return Response(response_data, status=status.HTTP_200_OK)
 
         except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     def put(self, request, id):
         try:
