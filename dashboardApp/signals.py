@@ -88,6 +88,8 @@ def update_billing_from_reminder(sender, instance, created, **kwargs):
         user=doctor,
         billing_method=doctor.billing_method,
         payment_status="Pending",
+        start_date=start_date,
+        end_date=end_date,
         defaults={
             "total_message_sent": 0,
             "billing_subtotal": Decimal("0.00"),
@@ -98,6 +100,8 @@ def update_billing_from_reminder(sender, instance, created, **kwargs):
     )
 
     billing.total_message_sent = msg_count
+    billing.start_date = start_date
+    billing.end_date = end_date
 
     per_msg_rate = Decimal(str(doctor.per_message_charges or 0))
     sub_fee = Decimal(str(doctor.monthly_subscription_fees or 0))
