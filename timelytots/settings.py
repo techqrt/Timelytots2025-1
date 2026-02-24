@@ -1,6 +1,7 @@
 from datetime import timedelta
 from pathlib import Path
 import os
+from turtle import home
 from celery.schedules import crontab
 
 
@@ -81,7 +82,7 @@ DATABASES = {
         'NAME': 'postgres',                # or your DB name
         'USER': 'postgres',                # your DB username
         'PASSWORD': '35mGRrbePT',        # your DB password
-        'HOST': 'localhost',               # since DB and app are on same EC2
+        'HOST': '54.90.125.245',               # since DB and app are on same EC2
         'PORT': '5432',
     }
 }
@@ -109,14 +110,16 @@ USE_I18N = True
 
 USE_TZ = True
 
+
+
 STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 STATICFILES_DIRS = [
     BASE_DIR / "static",  # your source static files
 ]
 
-STATIC_ROOT = BASE_DIR / "staticfiles"
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+STATIC_ROOT = '/home/timelytots.com/public_html/Timelytots2025-1/staticfiles'
+MEDIA_ROOT = '/home/timelytots.com/public_html/Timelytots2025-1/media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
