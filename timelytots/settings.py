@@ -1,7 +1,6 @@
 from datetime import timedelta
 from pathlib import Path
 import os
-from turtle import home
 from celery.schedules import crontab
 
 
