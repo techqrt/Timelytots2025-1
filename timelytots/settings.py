@@ -81,7 +81,7 @@ DATABASES = {
         'NAME': 'postgres',                # or your DB name
         'USER': 'postgres',                # your DB username
         'PASSWORD': '35mGRrbePT',        # your DB password
-        'HOST': '54.90.125.245',               # since DB and app are on same EC2
+        'HOST': '160.250.205.123',               # since DB and app are on same EC2
         'PORT': '5432',
     }
 }
