@@ -234,8 +234,10 @@ class PatientSearch(APIView):
     def get(self, request):
         try:
             query = request.query_params.get('search', '')
-            patient = Patient.objects.filter(child_name__icontains=query) | Patient.objects.filter(
-                mobile_number__icontains=query)
+            patient = Patient.objects.filter(
+                (Q(child_name__icontains=query) | Q(mobile_number__icontains=query)),
+                user=request.user
+            ).order_by('-id')
 
             if patient:
                 serializers = PatientSerializer(patient, many=True)
