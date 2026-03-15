@@ -195,6 +195,16 @@ def send_vaccination_reminders():
         vaccine_schedule = patient_vaccines[0].vaccine_schedule
         age = vaccine_schedule.age or str(vaccine_schedule.due_date)
 
+        # Check if reminder already sent today for this mobile + due_date
+        existing_log = ReminderLog.objects.filter(
+            recipient=mobile_number,
+            due_date=due_date,
+            created_at__date=today
+        ).first()
+        
+        if existing_log:
+            logger.info(f"Reminder already sent today for {mobile_number} (due: {due_date})")
+            continue
 
         # Send a single reminder
         response = send_whatsapp_reminder(
